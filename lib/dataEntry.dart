@@ -1,22 +1,19 @@
-
 import 'package:flutter/material.dart';
 
-// import 'package:dropdown_search/dropdown_search.dart';
-
-class MarkAttendance extends StatefulWidget {
-  const MarkAttendance({super.key});
+class DataEntry extends StatefulWidget {
+  const DataEntry({super.key});
 
   @override
-  State<MarkAttendance> createState() => _MarkAttendanceState();
+  State<DataEntry> createState() => _DataEntryState();
 }
 
-class _MarkAttendanceState extends State<MarkAttendance> {
+class _DataEntryState extends State<DataEntry> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Mark Attendance',
+          'Database',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,

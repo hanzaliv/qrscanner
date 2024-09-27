@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'markAttendance.dart';
+import 'generateQr.dart';
+import 'recordedAttendance.dart';
+import 'dataEntry.dart';
+
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -42,66 +47,67 @@ class _HomeState extends State<Home> {
         ],
       ),
 
-      drawer: Drawer(
-
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const SizedBox(height: 100,),
-
-            ListTile(
-
-              title: const Row(
-                children: [
-                  Icon(Icons.person),
-                  SizedBox(width: 10),
-                  Text('Profile'),
-                ],
-              ),
-
-              onTap: () {
-                // Update the state of the app
-                // ...
-                // Then close the drawer
-                Navigator.pop(context);
-              },
+      drawer:Drawer(
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color(0xFFFFFFFF), // Start color (FFFFFF)
+                Color(0xFFC7FFC9), // End color (C7FFC9)
+              ],
+              stops: [0.0, 0.82], // Stops as per your gradient
             ),
-            const Divider(),
-            ListTile(
-              title: const Row(
-                children: [
-                  Icon(Icons.settings),
-                  SizedBox(width: 10),
-                  Text('Settings'),
-                ],
+          ),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              const SizedBox(height: 100),
+              ListTile(
+                title: const Row(
+                  children: [
+                    Icon(Icons.person),
+                    SizedBox(width: 10),
+                    Text('Profile'),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                },
               ),
-              onTap: () {
-                // Update the state of the app
-                // ...
-                // Then close the drawer
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              title: const Row(
-                children: [
-                  Icon(Icons.logout),
-                  SizedBox(width: 10),
-                  Text('Logout'),
-                ],
+              const Divider(),
+              ListTile(
+                title: const Row(
+                  children: [
+                    Icon(Icons.settings),
+                    SizedBox(width: 10),
+                    Text('Settings'),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                },
               ),
-              onTap: () {
-                // Update the state of the app
-                // ...
-                // Then close the drawer
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-          ],
+              const Divider(),
+              ListTile(
+                title: const Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 10),
+                    Text('Logout'),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+              const Divider(),
+            ],
+          ),
         ),
-      ),
+      )
+      ,
       body: Stack(
         children: [
           Positioned(
@@ -157,7 +163,8 @@ class _HomeState extends State<Home> {
                           bottomLeft: Radius.circular(15),
                         ),
                         onTap: () {
-                          // Handle the button tap action here
+                          Navigator.push(context, (MaterialPageRoute(builder: (context) => const GenerateQR())));
+
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -212,7 +219,7 @@ class _HomeState extends State<Home> {
                           bottomRight: Radius.circular(15),
                         ),
                         onTap: () {
-                          // Handle the button tap action here
+                          Navigator.push(context, (MaterialPageRoute(builder: (context) => const MarkAttendance())));
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -274,7 +281,7 @@ class _HomeState extends State<Home> {
                           bottomRight: Radius.circular(15),
                         ),
                         onTap: () {
-                          // Handle the button tap action here
+                          Navigator.push(context, (MaterialPageRoute(builder: (context) => const RecordedAttendance())));
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -329,7 +336,8 @@ class _HomeState extends State<Home> {
                           bottomLeft: Radius.circular(15),
                         ),
                         onTap: () {
-                          // Handle the button tap action here
+                          Navigator.push(context, (MaterialPageRoute(builder: (context) => const DataEntry())));
+
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
