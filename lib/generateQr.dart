@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
+
 
 class GenerateQR extends StatefulWidget {
   const GenerateQR({super.key});
@@ -8,6 +10,10 @@ class GenerateQR extends StatefulWidget {
 }
 
 class _GenerateQRState extends State<GenerateQR> {
+
+  String? name;
+  String? id;
+
 
 
   @override
@@ -147,7 +153,7 @@ class _GenerateQRState extends State<GenerateQR> {
                           fontSize: 17,
                         )
                         ),
-                        SizedBox(height: 5,),
+                        const SizedBox(height: 5,),
                         Container(
                           width: 305,
                           height: 40,
@@ -155,13 +161,19 @@ class _GenerateQRState extends State<GenerateQR> {
                             color: const Color(0xFFE1FCE2),
                             borderRadius: BorderRadius.circular(25),
                           ),
-                          child: const TextField(
-                            decoration: InputDecoration(
+                          child: TextField(
+                            decoration: const InputDecoration(
                               hintText: 'P.R. Perera', // Placeholder text
                               hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
                               contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                               border: InputBorder.none,
                             ),
+                            onSubmitted: (value){
+                              setState(() {
+                                name = value;
+                              });
+                            },
+
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -181,13 +193,18 @@ class _GenerateQRState extends State<GenerateQR> {
                             color: const Color(0xFFE1FCE2),
                             borderRadius: BorderRadius.circular(25),
                           ),
-                          child: const TextField(
-                            decoration: InputDecoration(
+                          child: TextField(
+                            decoration: const InputDecoration(
                               hintText: 'SC/20xx/xxxxx', // Placeholder text
                               hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
                               contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                               border: InputBorder.none,
                             ),
+                            onSubmitted: (value){
+                              setState(() {
+                                id = value;
+                              });
+                            },
                           ),
                         ),
 
@@ -217,7 +234,6 @@ class _GenerateQRState extends State<GenerateQR> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Generate Button
                     SizedBox(
                       width: 140,
                       height: 40,
@@ -229,7 +245,18 @@ class _GenerateQRState extends State<GenerateQR> {
                           ),
                         ),
                         onPressed: () {
-                          // Handle the 'Generate' button press
+
+                          if(id != null){
+                            showDialog(context: context, builder: (context){
+                              return AlertDialog(
+                                title: Text(
+                                  "QR",
+                                ),
+                                content: PrettyQrView.data(data: id!)
+
+                              );
+                            });
+                          }
                         },
                         child: const Text(
                             'Generate',
@@ -285,7 +312,7 @@ class _GenerateQRState extends State<GenerateQR> {
             ),
           ),
           onPressed: () {
-            // Handle action when the floating button is pressed
+            Navigator.of(context).pop();
           },
           child: Padding(
             padding: const EdgeInsets.all(10.0),

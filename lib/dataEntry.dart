@@ -182,7 +182,7 @@ class _DataEntryState extends State<DataEntry> {
             ),
           ),
           onPressed: () {
-            // Handle action when the floating button is pressed
+            Navigator.of(context).pop();
           },
           child: Padding(
             padding: const EdgeInsets.all(10.0),

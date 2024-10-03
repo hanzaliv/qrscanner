@@ -348,7 +348,8 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                         // Handle action when the button is pressed
                       },
                       style: ElevatedButton.styleFrom(
-                        primary: const Color(0xFF88C98A),
+                        backgroundColor: const Color(0xFF88C98A),
+                        // primary: const Color(0xFF88C98A),
                         minimumSize: const Size(100, 30),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
@@ -383,7 +384,7 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
             ),
           ),
           onPressed: () {
-            // Handle action when the floating button is pressed
+            Navigator.of(context).pop();
           },
           child: Padding(
             padding: const EdgeInsets.all(10.0),
