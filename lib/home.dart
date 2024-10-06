@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'markAttendance.dart';
 import 'generateQr.dart';
 import 'recordedAttendance.dart';
-import 'dataEntry.dart';
+import 'Data Entry/course.dart';
+import 'Data Entry/lecturer.dart';
+import 'Data Entry/assistance.dart';
+
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -13,6 +16,51 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+
+  void _showPopupMenu(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text('Select an Option'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.book),
+                title: const Text('Course'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Course())));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text('Lecturer'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Lecturer())));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Lab Assistance'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Assistance())));
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -335,9 +383,8 @@ class _HomeState extends State<Home> {
                           topRight: Radius.circular(15),
                           bottomLeft: Radius.circular(15),
                         ),
-                        onTap: () {
-                          Navigator.push(context, (MaterialPageRoute(builder: (context) => const DataEntry())));
-
+                        onTap: (){
+                          _showPopupMenu(context);
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),

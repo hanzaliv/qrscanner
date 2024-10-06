@@ -38,6 +38,8 @@ dependencies:
   dropdown_search: ^6.0.1
   mobile_scanner: ^5.2.3
   pretty_qr_code: ^3.3.0
+  flutter_keyboard_visibility: ^6.0.0
+
 
 
 dev_dependencies:

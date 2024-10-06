@@ -14,6 +14,8 @@ class _GenerateQRState extends State<GenerateQR> {
   String? name;
   String? id;
 
+  bool _isValidID = true;
+
 
 
   @override
@@ -194,20 +196,25 @@ class _GenerateQRState extends State<GenerateQR> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                           child: TextField(
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'SC/20xx/xxxxx', // Placeholder text
                               hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
                               contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                               border: InputBorder.none,
+                              errorText: _isValidID ? null : 'Invalid ID format', // Show error if the ID is invalid
                             ),
-                            onSubmitted: (value){
+                            onChanged: (value) {
                               setState(() {
-                                id = value;
+                                // Check if the entered value matches the required format
+                                _isValidID = RegExp(r'^SC/20\d{2}/\d{5}$').hasMatch(value);
+                                if (_isValidID) {
+                                  id = value;
+                                }
                               });
                             },
                           ),
-                        ),
 
+                        ),
 
                       ],
                     ),
@@ -249,7 +256,7 @@ class _GenerateQRState extends State<GenerateQR> {
                           if(id != null){
                             showDialog(context: context, builder: (context){
                               return AlertDialog(
-                                title: Text(
+                                title: const Text(
                                   "QR",
                                 ),
                                 content: PrettyQrView.data(data: id!)

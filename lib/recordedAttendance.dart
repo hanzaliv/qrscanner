@@ -42,6 +42,15 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
     }
   }
 
+  List<Map<String, String>> dummyData = List.generate(10, (index) {
+    return {
+      "courseUnit": "PHY 222${index + 1}",
+      "lecturer": "Lecturer Smaranayaka http ${index + 1}",
+      "date": "2024-12-0${index + 1}",
+      "time": "10:00 AM - 12:00 PM",
+    };
+  });
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -370,6 +379,153 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
               ],
             ),
           ),
+          DraggableScrollableSheet(
+            initialChildSize: 0.4,
+            minChildSize: 0.4,
+            maxChildSize: 1.0, // Allow the sheet to be dragged to the top of the screen
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC7FFC9),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 8.0),
+                  child: Column(
+                    children: [
+                      // Table header
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                "Course Unit",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                "Lecturer",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                "Date",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                "Time",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                "View",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Make the ListView scrollable inside DraggableScrollableSheet
+                      Expanded(
+                        child: ListView.builder(
+                          controller: scrollController, // Pass the scrollController to ListView
+                          itemCount: dummyData.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Course Unit column
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      dummyData[index]['courseUnit'] ?? '',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  // Lecturer column with wrapping
+                                  Expanded(
+                                    flex: 3,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 1.0),
+                                      child: Text(
+                                        dummyData[index]['lecturer'] ?? '',
+                                        textAlign: TextAlign.start,
+                                        maxLines: 2, // Limit the text to a maximum of 2 lines
+                                        overflow: TextOverflow.ellipsis, // Display ellipsis if the text exceeds 2 lines
+                                      ),
+                                    ),
+                                  ),
+                                  // Date column with wrapping
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      dummyData[index]['date'] ?? '',
+                                      textAlign: TextAlign.center,
+                                      softWrap: true, // Allow wrapping to multiple lines
+                                    ),
+                                  ),
+                                  // Time column
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      dummyData[index]['time'] ?? '',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  // Action button
+                                  Expanded(
+                                    flex: 1,
+                                    child: IconButton(
+                                        onPressed: (){},
+                                        icon: const Icon(Icons.download_for_offline),
+                                    )
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          )
+
+
+
         ],
       ),
       floatingActionButton: SizedBox(
