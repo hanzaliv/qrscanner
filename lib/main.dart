@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'home.dart';
+import 'loggin.dart';
 
 void main() => runApp(MaterialApp(
   builder: (context, child) {
@@ -11,11 +12,11 @@ void main() => runApp(MaterialApp(
     return LayoutBuilder(builder: (context, constraints) {
       return OrientationBuilder(builder: (context, orientation) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(1.0)),
           child: child!,
         );
       });
     });
   },
-  home: const Home(),
+  home: const Loggin(),
 ));

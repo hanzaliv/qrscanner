@@ -145,7 +145,7 @@ class _DataEntryState extends State<DataEntry> {
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  child: Column(
+                  child: const Column(
                     children: [
                       Text("Course Unit Number:"),
 

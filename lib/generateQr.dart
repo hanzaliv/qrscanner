@@ -249,7 +249,7 @@ class _GenerateQRState extends State<GenerateQR> {
                           if(id != null){
                             showDialog(context: context, builder: (context){
                               return AlertDialog(
-                                title: Text(
+                                title: const Text(
                                   "QR",
                                 ),
                                 content: PrettyQrView.data(data: id!)
