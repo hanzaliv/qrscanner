@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
-
+import 'dart:convert';  // For decoding JSON
+import 'package:http/http.dart' as http;
 import 'package:dropdown_search/dropdown_search.dart';
-import 'AssistanceModify.dart';
+
+import 'assistanceModify.dart';
+import '../session_manager.dart';
+
 
 class Assistance extends StatefulWidget {
   const Assistance({super.key});
@@ -12,14 +16,57 @@ class Assistance extends StatefulWidget {
 }
 
 class _AssistanceState extends State<Assistance> {
+
+  final dropDownKeyFind = GlobalKey<DropdownSearchState>();
+  Map<String, String> assistanceMap = {}; // To store the name and ID mapping
+  List<String> assisstanceNames = []; // To store only the names for the dropdown
+
   final _scrollController = ScrollController();
   final _focusNodes = List<FocusNode>.generate(5, (index) => FocusNode());
   bool _obscureText = true;
 
+  String? search;
+  String? selectedAssistanceId;
   String? id;
   String? name;
   String? password;
   String? confirmPassword;
+
+  Future<void> _fetchAssistance() async {
+    try {
+      final sessionManager = SessionManager(); // Retrieve the singleton instance
+
+      final response = await http.get(
+        Uri.parse('http://192.168.1.8:3000/demos'),
+        headers: {
+          'Accept': 'application/json',
+          'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+
+        setState(() {
+          // Map lecturer names to their IDs
+          assistanceMap = {
+            for (var demo in jsonResponse)
+              demo['name'].toString(): demo['id'].toString()
+          };
+          assisstanceNames = assistanceMap.keys.toList(); // List of lecturer names for dropdown
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load assistance')),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching assistance: $error')),
+      );
+    }
+  }
+
 
   void _showAlertDialog(BuildContext context, String message) {
     showDialog(
@@ -44,7 +91,7 @@ class _AssistanceState extends State<Assistance> {
   @override
   void initState() {
     super.initState();
-
+    _fetchAssistance();
     // Listen for keyboard visibility changes
     KeyboardVisibilityController().onChange.listen((bool visible) {
       if (visible) {
@@ -291,19 +338,96 @@ class _AssistanceState extends State<Assistance> {
                                 ),
                               ),
                               Expanded( // Allows the TextField to take up the remaining space
-                                child: TextField(
-                                  decoration: const InputDecoration(
-                                    hintText: 'Search', // Placeholder text
-                                    hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    border: InputBorder.none,
-                                  ),
-                                  onSubmitted: (value) {
-                                    setState(() {
-                                      // search = value;
-                                    });
-                                  },
-                                ),
+                                  child:DropdownSearch<String>(
+                                    key: dropDownKeyFind,
+                                    // items: (filter, infiniteScrollProps) => _fetchCourses(),
+                                    items: (filter, infiniteScrollProps) => assisstanceNames, // Use the fetched course units
+                                    onChanged: (value) {
+                                      setState(() {
+                                        search = value; // Update selected course unit
+                                        selectedAssistanceId = assistanceMap[value!];
+                                      });
+                                    },
+                                    selectedItem: search,
+                                    popupProps: PopupProps.menu(
+                                      showSearchBox: true,
+                                      fit: FlexFit.loose,
+                                      constraints: BoxConstraints(
+                                        maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                        maxWidth: 308,
+                                      ),
+                                      containerBuilder: (context, popupWidget) {
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE1FCE2), // Same background color
+                                            borderRadius: BorderRadius.circular(0), // Same border radius
+                                          ),
+                                          width: 308, // Set the width of the popup
+                                          child: popupWidget, // Return the actual popup content
+                                        );
+                                      },
+                                      searchFieldProps: TextFieldProps(
+                                        decoration: InputDecoration(
+                                          hintText: 'Search', // Placeholder text
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(25), // Rounded border
+                                            borderSide: const BorderSide(
+                                              color: Colors.grey, // Border color
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                            borderSide: const BorderSide(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                                        ),
+                                      ),
+                                    ),
+                                    decoratorProps: DropDownDecoratorProps(
+                                      decoration  : InputDecoration(
+                                        filled: true,
+                                        fillColor: const Color(0xFFE1FCE2), // Set background color
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25), // Rounded border
+                                          borderSide: const BorderSide(
+                                            color: Colors.transparent, // No border color
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                          borderSide: const BorderSide(
+                                            color: Colors.transparent,
+                                          ),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide: const BorderSide(
+                                            color: Colors.transparent,
+                                          ),
+                                        ),
+                                        // Set the label text and border behavior when label is focused
+                                      ),
+                                    ),
+                                    dropdownBuilder: (context, selectedItem) => Container(
+                                      alignment: Alignment.centerLeft,
+                                      width: 308, // Set width to 308
+                                      height: 35,  // Set height to 35
+                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                      child: Text(
+                                        selectedItem ?? "Search",
+                                        style: const TextStyle(
+                                          fontFamily: 'Roboto',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          color: Colors.black45, // You can customize the text style
+                                        ),
+                                      ),
+                                    ),
+                                  )
+
                               ),
                             ],
                           ),
@@ -321,7 +445,20 @@ class _AssistanceState extends State<Assistance> {
                               ),
                             ),
                             onPressed: () {
-                              // Handle the scan button tap action here
+                              if(selectedAssistanceId == null) {
+                                _showAlertDialog(context, 'Please select an assistance');
+                              } else {
+                                // Fetch the assistance details
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ModifyAssistance(
+                                      selectedId: selectedAssistanceId!,
+                                      selectedName: search!,
+                                    )
+                                  ),
+                                );
+                              }
                             },
                             child: const Text(
                                 'Enter',
@@ -616,7 +753,10 @@ class _AssistanceState extends State<Assistance> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ModifyAssistance(),
+                                        builder: (context) => ModifyAssistance(
+                                          selectedId: id!,
+                                          selectedName: name!,
+                                        ),
                                       ),
                                     );
                                   }

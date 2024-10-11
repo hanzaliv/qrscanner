@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'dart:convert';  // For decoding JSON
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 import 'courseModify.dart';
+import '../session_manager.dart';
+
 
 
 class Course extends StatefulWidget {
@@ -14,14 +19,65 @@ class Course extends StatefulWidget {
 class _CourseState extends State<Course> {
 
   final dropDownKeyLecturer = GlobalKey<DropdownSearchState>();
+  final dropDownKeyFind = GlobalKey<DropdownSearchState>();
 
   TextEditingController courseNumberController = TextEditingController();
   TextEditingController courseNameController = TextEditingController();
+
+  List<Map<String, dynamic>> courses = []; // To store the course details
+  List<String> courseUnitNumbers = []; // List of course unit numbers for the dropdown
+  List<String> courseUnitNames = []; // List of course unit names for the dropdown
 
   String? search;
   String? courseNumber;
   String? courseName;
   String? lecturer;
+
+  Future<List<String>> _fetchCourses() async {
+    try {
+      final sessionManager = SessionManager(); // Retrieve the singleton instance
+
+      final response = await http.get(
+        Uri.parse('http://192.168.1.8:3000/get-courses'),
+        headers: {
+          'Accept': 'application/json',
+          'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+
+        List<dynamic> jsonResponse = json.decode(response.body);
+
+        setState(() {
+          // Extract course_unit_number from the response and store it in courseUnitNumbers list
+          courseUnitNumbers = jsonResponse
+              .map((course) => course['course_unit_number'].toString())
+              .toList();
+        });
+
+        return jsonResponse
+            .map<String>((course) => course['course_unit_number'].toString())
+            .toList();
+      } else {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load courses')),
+        );
+        return []; // Return empty list on failure
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching courses: $error')),
+      );
+      return []; // Return empty list on error
+    }
+  }
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses(); // Call the function to fetch courses on page load
+  }
 
   @override
   void dispose() {
@@ -258,19 +314,94 @@ class _CourseState extends State<Course> {
                                 ),
                               ),
                               Expanded( // Allows the TextField to take up the remaining space
-                                child: TextField(
-                                  decoration: const InputDecoration(
-                                    hintText: 'Search', // Placeholder text
-                                    hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    border: InputBorder.none,
-                                  ),
-                                  onSubmitted: (value) {
+                                child:DropdownSearch<String>(
+                                  key: dropDownKeyFind,
+                                  // items: (filter, infiniteScrollProps) => _fetchCourses(),
+                                  items: (filter, infiniteScrollProps) => courseUnitNumbers, // Use the fetched course units
+                                  onChanged: (value) {
                                     setState(() {
-                                      search = value;
+                                      search = value; // Update selected course unit
                                     });
                                   },
-                                ),
+                                  selectedItem: search,
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.loose,
+                                    constraints: BoxConstraints(
+                                      maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                      maxWidth: 308,
+                                    ),
+                                    containerBuilder: (context, popupWidget) {
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE1FCE2), // Same background color
+                                          borderRadius: BorderRadius.circular(0), // Same border radius
+                                        ),
+                                        width: 308, // Set the width of the popup
+                                        child: popupWidget, // Return the actual popup content
+                                      );
+                                    },
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search', // Placeholder text
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25), // Rounded border
+                                          borderSide: const BorderSide(
+                                            color: Colors.grey, // Border color
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                          borderSide: const BorderSide(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                                      ),
+                                    ),
+                                  ),
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration  : InputDecoration(
+                                      filled: true,
+                                      fillColor: const Color(0xFFE1FCE2), // Set background color
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(25), // Rounded border
+                                        borderSide: const BorderSide(
+                                          color: Colors.transparent, // No border color
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                        borderSide: const BorderSide(
+                                          color: Colors.transparent,
+                                        ),
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                        borderSide: const BorderSide(
+                                          color: Colors.transparent,
+                                        ),
+                                      ),
+                                      // Set the label text and border behavior when label is focused
+                                    ),
+                                  ),
+                                  dropdownBuilder: (context, selectedItem) => Container(
+                                    alignment: Alignment.centerLeft,
+                                    width: 308, // Set width to 308
+                                    height: 35,  // Set height to 35
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    child: Text(
+                                      selectedItem ?? "Search",
+                                      style: const TextStyle(
+                                        fontFamily: 'Roboto',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                        color: Colors.black45, // You can customize the text style
+                                      ),
+                                    ),
+                                  ),
+                                )
                               ),
                             ],
                           ),
@@ -288,8 +419,17 @@ class _CourseState extends State<Course> {
                               ),
                             ),
                             onPressed: () {
-                              // Handle the scan button tap action here
-                            },
+                              if(search == null) {
+                                _showAlertDialog(context, 'Please select a course unit');
+                              } else {
+                                // Save the course details
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ModifyCourses(),
+                                  ),
+                                );
+                              }                            },
                             child: const Text(
                                 'Enter',
                                 style: TextStyle(

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'home.dart';
 
+import 'loggin.dart';
+
+
 void main() => runApp(MaterialApp(
   builder: (context, child) {
     // return MediaQuery(
@@ -17,5 +20,5 @@ void main() => runApp(MaterialApp(
       });
     });
   },
-  home: const Home(),
+  home: const Login(),
 ));

@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 
 class ModifyAssistance extends StatefulWidget {
-  const ModifyAssistance({super.key});
+  final String selectedId;
+  final String selectedName;
+
+  const ModifyAssistance({
+    super.key,
+    required this.selectedId,
+    required this.selectedName,
+  });
 
   @override
   State<ModifyAssistance> createState() => _ModifyAssistanceState();
 }
 
 class _ModifyAssistanceState extends State<ModifyAssistance> {
-  String id = 'Test';
-  String name = 'Test';
+  String id = 'Not selected';
+  String name = 'Not selected';
 
   TextEditingController idController = TextEditingController();
   TextEditingController nameController = TextEditingController();
 
   @override
   void initState() {
+    id = widget.selectedId;
+    name = widget.selectedName;
+
     super.initState();
     idController.text = id;
     nameController.text = name;

@@ -53,6 +53,14 @@ class _HomeState extends State<Home> {
                   Navigator.push(context, (MaterialPageRoute(builder: (context) => const Assistance())));
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.grade),
+                title: const Text('Student Group'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                },
+              ),
+
             ],
           ),
         );

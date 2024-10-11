@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class ModifyLecturer extends StatefulWidget {
-  const ModifyLecturer({super.key});
+  final String name;
+  final String id;
+
+  const ModifyLecturer({
+    super.key,
+    required this.name,
+    required this.id,
+  });
 
   @override
   State<ModifyLecturer> createState() => _ModifyLecturerState();
@@ -9,8 +16,8 @@ class ModifyLecturer extends StatefulWidget {
 
 class _ModifyLecturerState extends State<ModifyLecturer> {
 
-  String id = 'Test';
-  String name = 'Test';
+  String id = 'Not Selected';
+  String name = 'Not Selected';
 
   TextEditingController idController = TextEditingController();
   TextEditingController nameController = TextEditingController();
@@ -18,6 +25,9 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
   @override
   void initState() {
     super.initState();
+    id = widget.id;
+    name = widget.name;
+
     idController.text = id;
     nameController.text = name;
   }
