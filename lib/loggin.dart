@@ -15,6 +15,9 @@ class _LoginState extends State<Login> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // Boolean to track password visibility
+  bool _isPasswordObscured = true;
+
   // Function to handle login
   Future<void> _login() async {
     String username = _usernameController.text;
@@ -87,7 +90,7 @@ class _LoginState extends State<Login> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                const Text(//--------------------------------------------------
                   'Welcome',
                   style: TextStyle(
                     fontSize: 36,
@@ -96,11 +99,11 @@ class _LoginState extends State<Login> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Image.asset(
+                Image.asset(//--------------------------------------------------
                   'assets/images/phone.png',
                   height: 200,
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 30),//-------------------------------------
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
@@ -115,65 +118,96 @@ class _LoginState extends State<Login> {
                         ),
                       ],
                     ),
+                    
                     padding: const EdgeInsets.all(16),
-                    child: Column(
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        const Text(
-                          'QR Vault',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                         Opacity(
+                            //watermark image
+                          opacity: 0.1,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 200.0,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _usernameController,
-                          decoration: InputDecoration(
-                            labelText: 'User Name',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      
+                        Column(
+                          children: [                       
+                            const Text(
+                              'QR Vault',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            suffixIcon: const Icon(Icons.visibility_off),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            ElevatedButton(
-                              onPressed: _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: _usernameController,
+                              decoration: InputDecoration(
+                                labelText: 'User Name',
+                                border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: const Text('Log In'),
                             ),
-                            ElevatedButton(
-                              onPressed: () {
-                                _usernameController.clear();
-                                _passwordController.clear();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
+                            const SizedBox(height: 10),
+
+                            // Password TextField with visibility toggle
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: _isPasswordObscured, // Use the state to control visibility
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isPasswordObscured
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                  ),
+                                  onPressed: () {
+                                    // Toggle the password visibility
+                                    setState(() {
+                                     _isPasswordObscured = !_isPasswordObscured;
+                                    });
+                                  },
+                                ),
                               ),
-                              child: const Text('Clear'),
+                            ),
+
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: _login,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                 ),
+                                  child: const Text('Log In'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _usernameController.clear();
+                                    _passwordController.clear();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(
+                                     borderRadius: BorderRadius.circular(8),
+                                   ),
+                                  ),
+                                  child: const Text('Clear'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
