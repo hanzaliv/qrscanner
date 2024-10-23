@@ -20,6 +20,7 @@ class _ModifyGroupState extends State<ModifyGroup> {
   String? id;
   String? name;
   String? selectedStudentId;
+  String? errorMessage;
 
   final dropDownKeyFind = GlobalKey<DropdownSearchState>();
 
@@ -74,7 +75,8 @@ class _ModifyGroupState extends State<ModifyGroup> {
         });
       } else {
         name = null;
-        ScaffoldMessenger.of(context).showSnackBar(
+        final currentContext = context;
+        ScaffoldMessenger.of(currentContext).showSnackBar(
           const SnackBar(content: Text('No Matching Group Found')),
         );
       }
@@ -101,12 +103,11 @@ class _ModifyGroupState extends State<ModifyGroup> {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        print('Group updated successfully');
       } else {
-        print('Failed to update Group: ${response.body}');
+        errorMessage = response.body;
       }
     } catch (error) {
-      print('Error updating Group: $error');
+      errorMessage = error.toString();
     }
   }
 
@@ -164,12 +165,11 @@ class _ModifyGroupState extends State<ModifyGroup> {
     final response = await http.post(url, headers: headers, body: body);
 
     if (response.statusCode == 200) {
-      print('Student added to group successfully');
     } else {
-      print('Failed to add student to group: ${response.body}');
+      errorMessage = response.body;
     }
   } catch (error) {
-    print('Error adding student to group: $error');
+    errorMessage = error.toString();
   }
 }
 
@@ -195,7 +195,6 @@ class _ModifyGroupState extends State<ModifyGroup> {
           'name': student['name'].toString(),
         };
       }).toList();
-print('Students in group: $studentsInGroup');
       // Handle the response data as needed
       print('Students in group: $jsonResponse');
     } else {
@@ -887,6 +886,7 @@ print('Students in group: $studentsInGroup');
                                                 fontWeight: FontWeight.w500,
                                                 color: Colors.black,
                                               ),
+                                              textAlign: TextAlign.center,
                                             ),
                                             content: SizedBox(
                                               width: double.maxFinite,
