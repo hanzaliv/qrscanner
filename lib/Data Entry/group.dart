@@ -2,51 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
-import 'package:dropdown_search/dropdown_search.dart';
 
-import 'assistanceModify.dart';
-import '../session_manager.dart';
+import 'package:dropdown_search/dropdown_search.dart';
+import 'groupModify.dart'
+;import '../session_manager.dart';
 import '../.env';
 
-
-class Assistance extends StatefulWidget {
-  const Assistance({super.key});
+class Group extends StatefulWidget {
+  const Group({super.key});
 
   @override
-  State<Assistance> createState() => _AssistanceState();
+  State<Group> createState() => _GroupState();
 }
 
-class _AssistanceState extends State<Assistance> {
-
-  final _usernameController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+class _GroupState extends State<Group> {
 
   final dropDownKeyFind = GlobalKey<DropdownSearchState>();
-  Map<String, String> assistanceMap = {}; // To store the name and ID mapping
-  List<String> assisstanceNames = []; // To store only the names for the dropdown
+  Map<String, String> groupMap = {}; // To store the name and ID mapping
+  List<String> groupNames = []; // To store only the names for the dropdown
 
   final _scrollController = ScrollController();
   final _focusNodes = List<FocusNode>.generate(10, (index) => FocusNode());
-  bool _obscureTextPassword = true;
-  bool _obscureTextConfirmPassword = true;
+
+  final TextEditingController nameController = TextEditingController();
+
 
   String? search;
-  String? selectedAssistanceId;
+  String? selectedStudentId;
+  String? selectedGroupId;
   String? id;
   String? name;
-  String? password;
-  String? confirmPassword;
-  String? email;
-  String? phone;
 
   @override
   void initState() {
     super.initState();
-    _fetchAssistance();
+    _fetchGroups();
     // Listen for keyboard visibility changes
     KeyboardVisibilityController().onChange.listen((bool visible) {
       if (visible) {
@@ -70,12 +60,27 @@ class _AssistanceState extends State<Assistance> {
     }
   }
 
-  Future<void> _fetchAssistance() async {
+  @override
+  void dispose() {
+    // _usernameController.dispose();
+    // _nameController.dispose();
+    // _emailController.dispose();
+    // _phoneController.dispose();
+    // _passwordController.dispose();
+    // _confirmPasswordController.dispose();
+    // Clean up focus nodes to avoid memory leaks
+    for (var focusNode in _focusNodes) {
+      focusNode.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _fetchGroups() async {
     try {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
       final response = await http.get(
-        Uri.parse('$SERVER/demos'),
+        Uri.parse('$SERVER/get-student-groups'),
         headers: {
           'Accept': 'application/json',
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
@@ -87,66 +92,58 @@ class _AssistanceState extends State<Assistance> {
 
         setState(() {
           // Map lecturer names to their IDs
-          assistanceMap = {
-            for (var demo in jsonResponse)
-              demo['name'].toString(): demo['id'].toString()
+          groupMap = {
+            for (var group in jsonResponse)
+              group['name'].toString(): group['id'].toString()
           };
-          assisstanceNames = assistanceMap.keys.toList(); // List of lecturer names for dropdown
+          groupNames = groupMap.keys.toList(); // List of lecturer names for dropdown
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load assistance')),
+          const SnackBar(content: Text('Failed to load groups')),
         );
+        print('Failed to load groups: ${response.body}');
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching assistance: $error')),
+        SnackBar(content: Text('Error fetching groups: $error')),
       );
     }
   }
 
+  Future<void> addGroup(String name) async {
+    try {
+      print('Adding Group with name: $name');
 
-  Future<void> addAssistant(String username, String password, String name, String email, String phone) async {
-  try {
-    print('Adding assistant with username: $username');
-    print('Adding assistant with password: $password');
-    print('Adding assistant with name: $name');
-    print('Adding assistant with email: $email');
-    print('Adding assistant with phone: $phone');
+      final sessionManager = SessionManager(); // Retrieve the singleton instance
 
-    final sessionManager = SessionManager(); // Retrieve the singleton instance
+      // Prepare the request body
+      var body = jsonEncode({
+        'name': name,
+      });
 
-    // Prepare the request body
-    var body = jsonEncode({
-      'username': username,
-      'password': password,
-      'name': name,
-      'email': email,
-      'phone': phone,
-    });
+      final response = await http.post(
+        Uri.parse('$SERVER/add-student-group'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json', // Indicate that the body is JSON
+          'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+        },
+        body: body, // Send the Group details in the request body
+      );
 
-    final response = await http.post(
-      Uri.parse('$SERVER/add-demo'),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json', // Indicate that the body is JSON
-        'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
-      },
-      body: body, // Send the assistant details in the request body
-    );
-
-    if (response.statusCode == 201) {
-      var jsonResponse = json.decode(response.body);
-      id = jsonResponse['id'].toString();
-      print('Assistant added successfully with ID: $id');
-      // Save the assistant ID as needed
-    } else {
-      print('Failed to add assistant: ${response.body}');
+      if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        id = jsonResponse['group_id'].toString();
+        print('Group added successfully with ID: $id');
+        // Save the Group ID as needed
+      } else {
+        print('Failed to add Group: ${response.body}');
+      }
+    } catch (error) {
+      print('Error adding Group: $error');
     }
-  } catch (error) {
-    print('Error adding assistant: $error');
   }
-}
 
   void _showAlertDialog(BuildContext context, String message) {
     showDialog(
@@ -168,8 +165,6 @@ class _AssistanceState extends State<Assistance> {
     );
   }
 
-
-
   void _scrollToFocusedField() {
     for (int i = 0; i < _focusNodes.length; i++) {
       if (_focusNodes[i].hasFocus) {
@@ -184,20 +179,6 @@ class _AssistanceState extends State<Assistance> {
     }
   }
 
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    // Clean up focus nodes to avoid memory leaks
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -329,7 +310,7 @@ class _AssistanceState extends State<Assistance> {
                   ),
                   const Center(
                     child: Text(
-                      'Assistance',
+                      'Group',
                       style: TextStyle(
                         fontFamily: 'Roboto',
                         fontWeight: FontWeight.w500,
@@ -402,11 +383,11 @@ class _AssistanceState extends State<Assistance> {
                                   child:DropdownSearch<String>(
                                     key: dropDownKeyFind,
                                     // items: (filter, infiniteScrollProps) => _fetchCourses(),
-                                    items: (filter, infiniteScrollProps) => assisstanceNames, // Use the fetched course units
+                                    items: (filter, infiniteScrollProps) => groupNames, // Use the fetched course units
                                     onChanged: (value) {
                                       setState(() {
                                         search = value; // Update selected course unit
-                                        selectedAssistanceId = assistanceMap[value!];
+                                        selectedGroupId = groupMap[value!];
                                       });
                                     },
                                     selectedItem: search,
@@ -506,17 +487,17 @@ class _AssistanceState extends State<Assistance> {
                               ),
                             ),
                             onPressed: () {
-                              if(selectedAssistanceId == null) {
-                                _showAlertDialog(context, 'Please select an assistance');
+                              if(selectedGroupId == null) {
+                                _showAlertDialog(context, 'Please select a group');
                               } else {
-                                // Fetch the assistance details
+                                // Fetch the group details
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ModifyAssistance(
-                                      selectedId: selectedAssistanceId!,
-                                      selectedName: search!,
-                                    )
+                                      builder: (context) => ModifyGroup(
+                                        selectedId: selectedGroupId!,
+                                        selectedName: search!,
+                                      )
                                   ),
                                 );
                               }
@@ -572,7 +553,7 @@ class _AssistanceState extends State<Assistance> {
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8.0),
                               child: Text(
-                                'Add New Assistance',
+                                'Add New Group',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -590,25 +571,9 @@ class _AssistanceState extends State<Assistance> {
                           ],
                         ),
                         const SizedBox(height: 5),
-                        _buildTextField('Username', _usernameController, _focusNodes[0]),
-                        const SizedBox(height: 5),
-                        _buildTextField('Name', _nameController, _focusNodes[1]),
-                        const SizedBox(height: 5),
-                        _buildTextField('Email', _emailController, _focusNodes[2]),
-                        const SizedBox(height: 5),
-                        _buildTextField('Phone Number', _phoneController, _focusNodes[3]),
-                        const SizedBox(height: 5),
-                        _buildPasswordField('Password', _passwordController, _focusNodes[4], _obscureTextPassword, () {
-                          setState(() {
-                            _obscureTextPassword = !_obscureTextPassword;
-                          });
-                        }),
-                        const SizedBox(height: 5),
-                        _buildPasswordField('Confirm Password', _confirmPasswordController, _focusNodes[5], _obscureTextConfirmPassword, () {
-                          setState(() {
-                            _obscureTextConfirmPassword = !_obscureTextConfirmPassword;
-                          });
-                        }),
+                        _buildTextField('Name', 'PHY2222 2024' , nameController, _focusNodes[0]),
+
+
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -625,26 +590,15 @@ class _AssistanceState extends State<Assistance> {
                                   ),
                                 ),
                                 onPressed: () async {
-                                  if (_usernameController.text.isEmpty ||
-                                      _nameController.text.isEmpty ||
-                                      _emailController.text.isEmpty ||
-                                      _phoneController.text.isEmpty ||
-                                      _passwordController.text.isEmpty ||
-                                      _confirmPasswordController.text.isEmpty) {
+                                  if (nameController.text.isEmpty) {
                                     _showAlertDialog(context, 'Please fill in all fields');
-                                  } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text)) {
-                                    _showAlertDialog(context, 'Invalid email format');
-                                  } else if (!RegExp(r'^\d{9,10}$').hasMatch(_phoneController.text)) {
-                                    _showAlertDialog(context, 'Phone number must be 9 or 10 digits');
-                                  } else if (_passwordController.text != _confirmPasswordController.text) {
-                                    _showAlertDialog(context, 'Passwords do not match');
                                   } else {
                                     showDialog(
                                       context: context,
                                       barrierDismissible: false,
                                       builder: (BuildContext context) {
                                         return const AlertDialog(
-                                          title: Text('Adding New Assistant'),
+                                          title: Text('Adding New Group'),
                                           content: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -655,12 +609,8 @@ class _AssistanceState extends State<Assistance> {
                                       },
                                     );
                                     try {
-                                      await addAssistant(
-                                        _usernameController.text,
-                                        _passwordController.text,
-                                        _nameController.text,
-                                        _emailController.text,
-                                        _phoneController.text,
+                                      await addGroup(
+                                        nameController.text,
                                       );
                                       Navigator.pop(context); // Close the progress dialog
                                       showDialog(
@@ -668,7 +618,7 @@ class _AssistanceState extends State<Assistance> {
                                         builder: (BuildContext context) {
                                           return AlertDialog(
                                             title: const Text('Success'),
-                                            content: const Text('Assistant added successfully'),
+                                            content: const Text('Group added successfully'),
                                             actions: [
                                               TextButton(
                                                 child: const Text('OK'),
@@ -677,9 +627,9 @@ class _AssistanceState extends State<Assistance> {
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
-                                                      builder: (context) => ModifyAssistance(
+                                                      builder: (context) => ModifyGroup(
                                                         selectedId: id!,
-                                                        selectedName: _nameController.text,
+                                                        selectedName: nameController.text,
                                                       ),
                                                     ),
                                                   );
@@ -691,7 +641,7 @@ class _AssistanceState extends State<Assistance> {
                                       );
                                     } catch (error) {
                                       Navigator.pop(context); // Close the progress dialog
-                                      _showAlertDialog(context, 'Failed to add assistant: $error');
+                                      _showAlertDialog(context, 'Failed to add Group: $error');
                                     }
                                   }
                                 },
@@ -718,12 +668,7 @@ class _AssistanceState extends State<Assistance> {
                                   ),
                                 ),
                                 onPressed: () {
-                                  _usernameController.clear();
-                                  _nameController.clear();
-                                  _emailController.clear();
-                                  _phoneController.clear();
-                                  _passwordController.clear();
-                                  _confirmPasswordController.clear();
+                                  nameController.clear();
                                 },
                                 child: const Text(
                                   'Clear',
@@ -781,91 +726,48 @@ class _AssistanceState extends State<Assistance> {
         height: 100,
       ),
     );
-  }
 
-  Widget _buildTextField(String label, TextEditingController controller, FocusNode focusNode, {bool obscureText = false}) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 5,
-          child: Text(
-            '$label: ',
-            style: const TextStyle(
-              fontSize: 16,
-              fontFamily: 'Roboto',
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 5,
-          child: Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE1FCE2),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              obscureText: obscureText,
-              decoration: const InputDecoration(
-                hintStyle: TextStyle(color: Colors.grey),
-                contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordField(String label, TextEditingController controller, FocusNode focusNode, bool obscureText, VoidCallback toggleVisibility) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 5,
-          child: Text(
-            '$label: ',
-            style: const TextStyle(
-              fontSize: 16,
-              fontFamily: 'Roboto',
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 5,
-          child: Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE1FCE2),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              obscureText: obscureText,
-              decoration: InputDecoration(
-                hintStyle: const TextStyle(color: Colors.grey),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-                border: InputBorder.none,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    obscureText ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.grey,
-                  ),
-                  onPressed: toggleVisibility,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
+
+Widget _buildTextField(String label, String placeholder, TextEditingController controller, FocusNode focusNode, {bool obscureText = false}) {
+  return Row(
+    children: [
+      Expanded(
+        flex: 5,
+        child: Text(
+          '$label: ',
+          style: const TextStyle(
+            fontSize: 16,
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+        ),
+      ),
+      Expanded(
+        flex: 5,
+        child: Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE1FCE2),
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            obscureText: obscureText,
+            decoration: InputDecoration(
+              hintStyle: const TextStyle(color: Colors.grey),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+              border: InputBorder.none,
+              hintText: placeholder,
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 

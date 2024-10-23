@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import 'package:dropdown_search/dropdown_search.dart';
+import '.env';
 
 import 'session_manager.dart';
 import 'scanner.dart';
@@ -75,7 +76,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       });
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.8:3000/add-lecture'),
+        Uri.parse('$SERVER/add-lecture'),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json', // Indicate that the body is JSON
@@ -120,7 +121,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
       final response = await http.get(
-        Uri.parse('http://192.168.1.8:3000/get-courses'),
+        Uri.parse('$SERVER/get-courses'),
         headers: {
           'Accept': 'application/json',
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
@@ -161,7 +162,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
       final response = await http.get(
-        Uri.parse('http://192.168.1.8:3000/lecturers'),
+        Uri.parse('$SERVER/lecturers'),
         headers: {
           'Accept': 'application/json',
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
@@ -196,7 +197,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
       final response = await http.get(
-        Uri.parse('http://192.168.1.8:3000/get-student-groups'),
+        Uri.parse('$SERVER/get-student-groups'),
         headers: {
           'Accept': 'application/json',
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',

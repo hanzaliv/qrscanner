@@ -4,7 +4,7 @@ import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
 import 'session_manager.dart';
-
+import '.env';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScannerPage extends StatefulWidget {
@@ -50,7 +50,7 @@ class _ScannerPageState extends State<ScannerPage> {
       });
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.8:3000/mark-attendance'),
+        Uri.parse('$SERVER/mark-attendance'),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json', // Indicate that the body is JSON

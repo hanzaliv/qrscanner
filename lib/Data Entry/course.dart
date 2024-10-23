@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import 'courseModify.dart';
 import '../session_manager.dart';
+import '../.env';
 
 
 
@@ -38,7 +39,7 @@ class _CourseState extends State<Course> {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
       final response = await http.get(
-        Uri.parse('http://192.168.1.8:3000/get-courses'),
+        Uri.parse('$SERVER/get-courses'),
         headers: {
           'Accept': 'application/json',
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',

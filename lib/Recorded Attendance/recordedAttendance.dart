@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import 'Lecture.dart';
+import '../.env';
+import '../session_manager.dart';
+import 'detailedAttendance.dart';
 
 class RecordedAttendance extends StatefulWidget {
   const RecordedAttendance({super.key});
@@ -13,7 +20,20 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
   String selectedButton = ' All ';
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  List<Map<String, String>> lectures = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLectures();
+  }
+  // Load lectures asynchronously and update the state
+  Future<void> _loadLectures() async {
+    List<Map<String, String>> fetchedLectures = await getFormattedLectures();
+    setState(() {
+      lectures = fetchedLectures;
+    });
+  }
   // Function to pick a date
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -42,14 +62,58 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
     }
   }
 
-  List<Map<String, String>> dummyData = List.generate(10, (index) {
-    return {
-      "courseUnit": "PHY 222${index + 1}",
-      "lecturer": "Lecturer Smaranayaka http ${index + 1}",
-      "date": "2024-12-0${index + 1}",
-      "time": "10:00 AM - 12:00 PM",
-    };
-  });
+  Future<List<Lecture>> fetchLectures() async {
+    try {
+      final sessionManager = SessionManager(); // Retrieve the singleton instance
+
+      final response = await http.get(
+        Uri.parse('$SERVER/get-lectures'), // Adjust URL if needed
+        headers: {
+          'Accept': 'application/json',
+          'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+
+        // Map the response to a List<Lecture>
+        List<Lecture> lectures = jsonResponse.map<Lecture>((lectureData) {
+          return Lecture(
+            id: lectureData['id'].toString(),
+            courseId: lectureData['course_id'].toString(),
+            lectureUserId: lectureData['lecture_user_id'].toString(),
+            date: lectureData['date'],
+            from: lectureData['from'],
+            to: lectureData['to'],
+            studentGroupId: lectureData['student_group_id'].toString(),
+          );
+        }).toList();
+
+        return lectures;
+      } else {
+        throw Exception('Failed to load lectures');
+      }
+    } catch (error) {
+      throw Exception('Error fetching lectures: $error');
+    }
+  }
+
+  Future<List<Map<String, String>>> getFormattedLectures() async {
+    List<Lecture> lectures = await fetchLectures();
+
+    List<Map<String, String>> formattedLectures = lectures.map((lecture) {
+      return {
+        "courseUnit": lecture.courseId,
+        "lecturer": lecture.lectureUserId,
+        "date": lecture.date,
+        "time": "${lecture.from} - ${lecture.to}",
+        "id": lecture.id,
+      };
+    }).toList();
+
+    return formattedLectures;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -413,15 +477,15 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                             Expanded(
                               flex: 2,
                               child: Text(
-                                "Course Unit",
+                                "Course \n Unit",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                             ),
                             Expanded(
-                              flex: 3,
+                              flex: 2,
                               child: Text(
-                                "Lecturer",
+                                "Lecturer \n ID",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
@@ -443,7 +507,7 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                               ),
                             ),
                             Expanded(
-                              flex: 1,
+                              flex: 2,
                               child: Text(
                                 "View",
                                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -458,7 +522,7 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                       Expanded(
                         child: ListView.builder(
                           controller: scrollController, // Pass the scrollController to ListView
-                          itemCount: dummyData.length,
+                          itemCount: lectures.length,
                           itemBuilder: (context, index) {
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -469,18 +533,18 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      dummyData[index]['courseUnit'] ?? '',
+                                      lectures[index]['courseUnit'] ?? '',
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
                                   // Lecturer column with wrapping
                                   Expanded(
-                                    flex: 3,
+                                    flex: 2,
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 1.0),
                                       child: Text(
-                                        dummyData[index]['lecturer'] ?? '',
-                                        textAlign: TextAlign.start,
+                                        lectures[index]['lecturer'] ?? '',
+                                        textAlign: TextAlign.center,
                                         maxLines: 2, // Limit the text to a maximum of 2 lines
                                         overflow: TextOverflow.ellipsis, // Display ellipsis if the text exceeds 2 lines
                                       ),
@@ -490,7 +554,7 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      dummyData[index]['date'] ?? '',
+                                      lectures[index]['date'] ?? '',
                                       textAlign: TextAlign.center,
                                       softWrap: true, // Allow wrapping to multiple lines
                                     ),
@@ -499,15 +563,22 @@ class _RecordedAttendanceState extends State<RecordedAttendance> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      dummyData[index]['time'] ?? '',
+                                      lectures[index]['time'] ?? '',
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
                                   // Action button
                                   Expanded(
-                                    flex: 1,
+                                    flex: 2,
                                     child: IconButton(
-                                        onPressed: (){},
+                                        onPressed: (){
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => DetailedAttendancePage(lecId: lectures[index]['id']!),
+                                            ),
+                                          );
+                                        },
                                         icon: const Icon(Icons.download_for_offline),
                                     )
                                   ),

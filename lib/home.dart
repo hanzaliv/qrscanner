@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'markAttendance.dart';
 import 'generateQr.dart';
-import 'recordedAttendance.dart';
+import 'Recorded Attendance/recordedAttendance.dart';
 import 'Data Entry/course.dart';
 import 'Data Entry/lecturer.dart';
 import 'Data Entry/assistance.dart';
+import 'Data Entry/student.dart';
+import 'Data Entry/group.dart';
 
 
 class Home extends StatefulWidget {
@@ -47,10 +49,18 @@ class _HomeState extends State<Home> {
               ),
               ListTile(
                 leading: const Icon(Icons.person_outline),
-                title: const Text('Lab Assistance'),
+                title: const Text('Lab Assistant'),
                 onTap: () {
                   Navigator.pop(context); // Close the dialog
                   Navigator.push(context, (MaterialPageRoute(builder: (context) => const Assistance())));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.school),
+                title: const Text('Student'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Student())));
                 },
               ),
               ListTile(
@@ -58,6 +68,8 @@ class _HomeState extends State<Home> {
                 title: const Text('Student Group'),
                 onTap: () {
                   Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Group())));
+
                 },
               ),
 

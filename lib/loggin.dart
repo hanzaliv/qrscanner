@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'session_manager.dart'; // Import the session manager
 
+import '.env';
+
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -24,7 +26,7 @@ class _LoginState extends State<Login> {
 
     try {
       var response = await http.post(
-        Uri.parse('http://192.168.1.8:3000/auth/login'),
+        Uri.parse('$SERVER/auth/login'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },

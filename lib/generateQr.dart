@@ -1,8 +1,16 @@
+import 'dart:ui';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:flutter/services.dart'; // For ByteData
+import 'package:flutter/rendering.dart';
+import 'dart:ui' as ui;
 
+import '.env';
 import 'session_manager.dart';
 
 
@@ -14,12 +22,13 @@ class GenerateQR extends StatefulWidget {
 }
 
 class _GenerateQRState extends State<GenerateQR> {
-
+  final GlobalKey _globalKey = GlobalKey();
   TextEditingController _nameController = TextEditingController();
 
   String? name;
   String? id;
   String? qrData;
+  String? qrImageName;
 
   bool _isValidID = true;
 
@@ -41,7 +50,7 @@ class _GenerateQRState extends State<GenerateQR> {
       var body = jsonEncode({'sc_number': id!});
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.8:3000/get-name-by-scnumber'),
+        Uri.parse('$SERVER/get-name-by-scnumber'),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json', // Indicate that the body is JSON
@@ -58,6 +67,7 @@ class _GenerateQRState extends State<GenerateQR> {
           name = jsonResponse['name'];
           _nameController.text = jsonResponse['name'];
           qrData = id! + '~' + name!;
+          qrImageName = id! + '_' + name!;
         });
       } else {
         name = null;
@@ -72,6 +82,109 @@ class _GenerateQRState extends State<GenerateQR> {
     }
   }
 
+  Future<Uint8List?> generateQRCode(String data) async {
+    try {
+      final qrCode = QrCode.fromData(
+        data: data,
+        errorCorrectLevel: QrErrorCorrectLevel.H,
+      );
+
+      final qrImage = QrImage(qrCode);
+      final ByteData? qrImageByteData = await qrImage.toImageAsBytes(
+        size: 512,
+        format: ImageByteFormat.png,
+        decoration: const PrettyQrDecoration(
+          background: Colors.white,
+          image: PrettyQrDecorationImage(
+            image: AssetImage('assets/images/logo.png'),
+
+          )
+        ),
+      );
+      // final ByteData? qrImageByteData = await qrImage.toImageData(512, format: ImageByteFormat.png);
+
+      if (qrImageByteData != null) {
+        return qrImageByteData.buffer.asUint8List();
+      }
+      return null;
+    } catch (e) {
+      print("Error generating QR Code: $e");
+      return null;
+    }
+  }
+
+  void _showQrDialog(BuildContext context, Uint8List qrImageBytes, String imageName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("QR Code"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 200, // Define width
+                height: 200, // Define height
+                child: Image.memory(qrImageBytes),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  await _saveQrImage(qrImageBytes, imageName);
+                },
+                child: const Text('Save to Gallery'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _saveQrImage(Uint8List imageBytes, String imageName) async {
+    try {
+      final result = await ImageGallerySaver.saveImage(
+          imageBytes,
+        name: imageName+' QR',
+      );
+      if (result['isSuccess'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image saved to gallery')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error saving image')),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving image: $error')),
+      );
+    }
+  }
+// Function to display the QR code and Save button in the AlertDialog
+
+  void showQRCodeDialog(BuildContext context, Uint8List qrImageBytes) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("QR Code"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.memory(qrImageBytes),
+              const SizedBox(height: 20),
+              // ElevatedButton(
+              //   // onPressed: _saveQrImage,
+              //   child: const Text("Save to Gallery"),
+              // ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,24 +448,17 @@ class _GenerateQRState extends State<GenerateQR> {
                             borderRadius: BorderRadius.circular(15), // Border radius of 15
                           ),
                         ),
-                        onPressed: () {
-
-                          if(qrData != null){
-                            showDialog(context: context, builder: (context){
-                              return AlertDialog(
-                                title: const Text(
-                                  "QR",
-                                ),
-                                content: PrettyQrView.data(data: qrData!)
-
-                              );
-                            });
-                          }else{
+                        onPressed: () async {
+                          if (qrData != null) {
+                            Uint8List? qrImageBytes = await generateQRCode(qrData!);
+                            _showQrDialog(context, qrImageBytes!, qrImageName!);
+                          } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('No QR data to generate')),
                             );
                           }
                         },
+
                         child: const Text(
                             'Generate',
                             style: TextStyle(

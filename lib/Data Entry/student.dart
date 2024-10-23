@@ -4,23 +4,23 @@ import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
 import 'package:dropdown_search/dropdown_search.dart';
-import 'lecturerModify.dart';
+import 'studentModify.dart';
 import '../session_manager.dart';
 import '../.env';
 
 
-class Lecturer extends StatefulWidget {
-  const Lecturer({super.key});
+class Student extends StatefulWidget {
+  const Student({super.key});
 
   @override
-  State<Lecturer> createState() => _LecturerState();
+  State<Student> createState() => _StudentState();
 }
 
-class _LecturerState extends State<Lecturer> {
+class _StudentState extends State<Student> {
 
   final dropDownKeyFind = GlobalKey<DropdownSearchState>();
-  Map<String, String> lecturerMap = {}; // To store the name and ID mapping
-  List<String> lecturerNames = []; // To store only the names for the dropdown
+  Map<String, String> studentMap = {}; // To store the name and ID mapping
+  List<String> studentNames = []; // To store only the names for the dropdown
 
   final _scrollController = ScrollController();
   final _focusNodes = List<FocusNode>.generate(10, (index) => FocusNode());
@@ -29,12 +29,13 @@ class _LecturerState extends State<Lecturer> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController regNoController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
   String? search;
-  String? selectedLecturerId;
+  String? selectedStudentId;
   String? id;
   String? name;
   String? email;
@@ -42,14 +43,11 @@ class _LecturerState extends State<Lecturer> {
   String? password;
   String? confirmPassword;
   String? username;
+  String? regNo;
 
-  Future<void> addLecturer(String username, String password, String name, String email, String phone) async {
+  Future<void> addStudent(String username, String password, String name, String email, String phone, String regNo) async {
     try {
-      print('Adding lecturer with username: $username');
-      print('Adding lecturer with password: $password');
-      print('Adding lecturer with name: $name');
-      print('Adding lecturer with email: $email');
-      print('Adding lecturer with phone: $phone');
+
 
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -60,37 +58,38 @@ class _LecturerState extends State<Lecturer> {
         'name': name,
         'email': email,
         'phone': phone,
+        'sc_number' : regNo
       });
 
       final response = await http.post(
-        Uri.parse('$SERVER/add-lecturer'),
+        Uri.parse('$SERVER/add-student'),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json', // Indicate that the body is JSON
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
         },
-        body: body, // Send the lecturer details in the request body
+        body: body, // Send the student details in the request body
       );
 
       if (response.statusCode == 201) {
         var jsonResponse = json.decode(response.body);
         id = jsonResponse['id'].toString();
-        print('Lecturer added successfully with ID: $id');
-        // Save the lecturer ID as needed
+        print('student added successfully with ID: $id');
+        // Save the student ID as needed
       } else {
-        print('Failed to add lecturer: ${response.body}');
+        print('Failed to add student: ${response.body}');
       }
     } catch (error) {
-      print('Error adding lecturer: $error');
+      print('Error adding student: $error');
     }
   }
 
-  Future<void> _fetchLecturers() async {
+  Future<void> _fetchStudents() async {
     try {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
       final response = await http.get(
-        Uri.parse('$SERVER/lecturers'),
+        Uri.parse('$SERVER/students'),
         headers: {
           'Accept': 'application/json',
           'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
@@ -101,21 +100,21 @@ class _LecturerState extends State<Lecturer> {
         List<dynamic> jsonResponse = json.decode(response.body);
 
         setState(() {
-          // Map lecturer names to their IDs
-          lecturerMap = {
+          // Map student names to their IDs
+          studentMap = {
             for (var course in jsonResponse)
               course['name'].toString(): course['id'].toString()
           };
-          lecturerNames = lecturerMap.keys.toList(); // List of lecturer names for dropdown
+          studentNames = studentMap.keys.toList(); // List of student names for dropdown
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load lecturers')),
+          const SnackBar(content: Text('Failed to load students')),
         );
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching lecturers: $error')),
+        SnackBar(content: Text('Error fetching students: $error')),
       );
     }
   }
@@ -144,7 +143,7 @@ class _LecturerState extends State<Lecturer> {
   @override
   void initState() {
     super.initState();
-    _fetchLecturers(); // Call the function to fetch lecturers on page load
+    _fetchStudents(); // Call the function to fetch students on page load
 
     // Listen for keyboard visibility changes
     KeyboardVisibilityController().onChange.listen((bool visible) {
@@ -322,7 +321,7 @@ class _LecturerState extends State<Lecturer> {
                   ),
                   const Center(
                     child: Text(
-                      'Lecturer',
+                      'Student',
                       style: TextStyle(
                         fontFamily: 'Roboto',
                         fontWeight: FontWeight.w500,
@@ -392,97 +391,97 @@ class _LecturerState extends State<Lecturer> {
                                 ),
                               ),
                               Expanded( // Allows the TextField to take up the remaining space
-                                child:DropdownSearch<String>(
-                                key: dropDownKeyFind,
-                                // items: (filter, infiniteScrollProps) => _fetchCourses(),
-                                items: (filter, infiniteScrollProps) => lecturerNames, // Use the fetched course units
-                                onChanged: (value) {
-                                  setState(() {
-                                    search = value; // Update selected course unit
-                                    selectedLecturerId = lecturerMap[value!];
-                                  });
-                                },
-                                selectedItem: search,
-                                popupProps: PopupProps.menu(
-                                  showSearchBox: true,
-                                  fit: FlexFit.loose,
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                                    maxWidth: 308,
-                                  ),
-                                  containerBuilder: (context, popupWidget) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE1FCE2), // Same background color
-                                        borderRadius: BorderRadius.circular(0), // Same border radius
+                                  child:DropdownSearch<String>(
+                                    key: dropDownKeyFind,
+                                    // items: (filter, infiniteScrollProps) => _fetchCourses(),
+                                    items: (filter, infiniteScrollProps) => studentNames, // Use the fetched course units
+                                    onChanged: (value) {
+                                      setState(() {
+                                        search = value; // Update selected course unit
+                                        selectedStudentId = studentMap[value!];
+                                      });
+                                    },
+                                    selectedItem: search,
+                                    popupProps: PopupProps.menu(
+                                      showSearchBox: true,
+                                      fit: FlexFit.loose,
+                                      constraints: BoxConstraints(
+                                        maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                        maxWidth: 308,
                                       ),
-                                      width: 308, // Set the width of the popup
-                                      child: popupWidget, // Return the actual popup content
-                                    );
-                                  },
-                                  searchFieldProps: TextFieldProps(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search', // Placeholder text
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey, // Border color
+                                      containerBuilder: (context, popupWidget) {
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE1FCE2), // Same background color
+                                            borderRadius: BorderRadius.circular(0), // Same border radius
+                                          ),
+                                          width: 308, // Set the width of the popup
+                                          child: popupWidget, // Return the actual popup content
+                                        );
+                                      },
+                                      searchFieldProps: TextFieldProps(
+                                        decoration: InputDecoration(
+                                          hintText: 'Search', // Placeholder text
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(25), // Rounded border
+                                            borderSide: const BorderSide(
+                                              color: Colors.grey, // Border color
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                            borderSide: const BorderSide(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
                                         ),
                                       ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey,
+                                    ),
+                                    decoratorProps: DropDownDecoratorProps(
+                                      decoration  : InputDecoration(
+                                        filled: true,
+                                        fillColor: const Color(0xFFE1FCE2), // Set background color
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25), // Rounded border
+                                          borderSide: const BorderSide(
+                                            color: Colors.transparent, // No border color
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                          borderSide: const BorderSide(
+                                            color: Colors.transparent,
+                                          ),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide: const BorderSide(
+                                            color: Colors.transparent,
+                                          ),
+                                        ),
+                                        // Set the label text and border behavior when label is focused
+                                      ),
+                                    ),
+                                    dropdownBuilder: (context, selectedItem) => Container(
+                                      alignment: Alignment.centerLeft,
+                                      width: 308, // Set width to 308
+                                      height: 35,  // Set height to 35
+                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                      child: Text(
+                                        selectedItem ?? "Search",
+                                        style: const TextStyle(
+                                          fontFamily: 'Roboto',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          color: Colors.black45, // You can customize the text style
                                         ),
                                       ),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
                                     ),
-                                  ),
-                                ),
-                                decoratorProps: DropDownDecoratorProps(
-                                  decoration  : InputDecoration(
-                                    filled: true,
-                                    fillColor: const Color(0xFFE1FCE2), // Set background color
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Rounded border
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent, // No border color
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25),
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    // Set the label text and border behavior when label is focused
-                                  ),
-                                ),
-                                dropdownBuilder: (context, selectedItem) => Container(
-                                  alignment: Alignment.centerLeft,
-                                  width: 308, // Set width to 308
-                                  height: 35,  // Set height to 35
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text(
-                                    selectedItem ?? "Search",
-                                    style: const TextStyle(
-                                      fontFamily: 'Roboto',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                      color: Colors.black45, // You can customize the text style
-                                    ),
-                                  ),
-                                ),
-                              )
+                                  )
 
-                  ),
+                              ),
                             ],
                           ),
                         ),
@@ -500,13 +499,13 @@ class _LecturerState extends State<Lecturer> {
                             ),
                             onPressed: () {
                               if(search == null) {
-                                _showAlertDialog(context, 'Please select a lecturer');
+                                _showAlertDialog(context, 'Please select a student');
                               } else {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ModifyLecturer(
-                                      id: selectedLecturerId!,
+                                    builder: (context) => ModifyStudent(
+                                      id: selectedStudentId!,
                                       name: search!,
                                     ),
                                   ),
@@ -628,7 +627,7 @@ class _LecturerState extends State<Lecturer> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Lecturer Name: ',
+                                'Student Name: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -663,6 +662,52 @@ class _LecturerState extends State<Lecturer> {
                             ),
                           ],
                         ),
+                        Row(
+                          children: [
+                            const Expanded(
+                              flex: 5,
+                              child: Text(
+                                'Registration Number: ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 5,
+                              child: Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE1FCE2),
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: TextField(
+                                  controller: regNoController,
+                                  focusNode: _focusNodes[2],
+                                  decoration: const InputDecoration(
+                                    hintText: 'XX/20XX/xxxxx',
+                                    hintStyle: TextStyle(color: Colors.grey),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+                                    border: InputBorder.none,
+                                  ),
+                                  onSubmitted: (value) {
+                                    setState(() {
+                                      regNo = value;
+                                      if (!RegExp(r'^[A-Za-z]{2}/20\d{2}/\d{5}$').hasMatch(regNo!)) {
+                                        _showAlertDialog(context, 'Registration number must be in the format XX/20XX/xxxxx');
+                                        regNo = null;
+                                      }
+                                    });
+                                  },
+
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 5),
                         Row(
                           children: [
@@ -688,7 +733,7 @@ class _LecturerState extends State<Lecturer> {
                                 ),
                                 child: TextField(
                                   controller: emailController,
-                                  focusNode: _focusNodes[2],
+                                  focusNode: _focusNodes[4],
                                   decoration: const InputDecoration(
                                     hintStyle: TextStyle(color: Colors.grey),
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -733,7 +778,7 @@ class _LecturerState extends State<Lecturer> {
                                 ),
                                 child: TextField(
                                   controller: phoneController,
-                                  focusNode: _focusNodes[3],
+                                  focusNode: _focusNodes[5],
                                   decoration: const InputDecoration(
                                     hintStyle: TextStyle(color: Colors.grey),
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -778,7 +823,7 @@ class _LecturerState extends State<Lecturer> {
                                 ),
                                 child: TextField(
                                   controller: passwordController,
-                                  focusNode: _focusNodes[4],
+                                  focusNode: _focusNodes[6],
                                   obscureText: _obscureText,
                                   decoration: InputDecoration(
                                     hintText: 'Enter your password',
@@ -832,7 +877,7 @@ class _LecturerState extends State<Lecturer> {
                                 ),
                                 child: TextField(
                                   controller: confirmPasswordController,
-                                  focusNode: _focusNodes[5],
+                                  focusNode: _focusNodes[7],
                                   obscureText: _obscureText,
                                   decoration: InputDecoration(
                                     hintText: 'Enter your password',
@@ -884,6 +929,7 @@ class _LecturerState extends State<Lecturer> {
                                   if (name == null || name!.isEmpty ||
                                       email == null || email!.isEmpty ||
                                       phone == null || phone!.isEmpty ||
+                                      regNo == null || regNo!.isEmpty ||
                                       password == null || password!.isEmpty ||
                                       confirmPassword == null || confirmPassword!.isEmpty) {
                                     _showAlertDialog(context, 'Please fill in all fields');
@@ -899,7 +945,7 @@ class _LecturerState extends State<Lecturer> {
                                       barrierDismissible: false,
                                       builder: (BuildContext context) {
                                         return const AlertDialog(
-                                          title: Text('Adding New Lecturer'),
+                                          title: Text('Adding New student'),
                                           content: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -910,14 +956,14 @@ class _LecturerState extends State<Lecturer> {
                                       },
                                     );
                                     try {
-                                      await addLecturer(username!,password!, name!, email!, phone!);
+                                      await addStudent(username!,password!, name!, email!, phone!, regNo!);
                                       Navigator.pop(context); // Close the progress dialog
                                       showDialog(
                                         context: context,
                                         builder: (BuildContext context) {
                                           return AlertDialog(
                                             title: const Text('Success'),
-                                            content: const Text('Lecturer added successfully'),
+                                            content: const Text('Student added successfully'),
                                             actions: [
                                               TextButton(
                                                 child: const Text('OK'),
@@ -926,7 +972,7 @@ class _LecturerState extends State<Lecturer> {
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
-                                                      builder: (context) => ModifyLecturer(
+                                                      builder: (context) => ModifyStudent(
                                                         id: id!,
                                                         name: name!,
                                                       ),
@@ -940,7 +986,7 @@ class _LecturerState extends State<Lecturer> {
                                       );
                                     } catch (error) {
                                       Navigator.pop(context); // Close the progress dialog
-                                      _showAlertDialog(context, 'Failed to add lecturer: $error');
+                                      _showAlertDialog(context, 'Failed to add student: $error');
                                     }
                                   }
                                 },
@@ -974,6 +1020,7 @@ class _LecturerState extends State<Lecturer> {
                                     phoneController.clear();
                                     passwordController.clear();
                                     confirmPasswordController.clear();
+                                    regNoController.clear();
                                   });
                                 },
                                 child: const Text(
@@ -1034,3 +1081,5 @@ class _LecturerState extends State<Lecturer> {
     );
   }
 }
+
+

@@ -5,12 +5,12 @@ import 'package:http/http.dart' as http;
 import '../session_manager.dart';
 import '../.env';
 
-class ModifyLecturer extends StatefulWidget {
+class ModifyStudent extends StatefulWidget {
   final String name;
   final String id;
   // final String email;
 
-  const ModifyLecturer({
+  const ModifyStudent({
     super.key,
     required this.name,
     required this.id,
@@ -18,24 +18,27 @@ class ModifyLecturer extends StatefulWidget {
   });
 
   @override
-  State<ModifyLecturer> createState() => _ModifyLecturerState();
+  State<ModifyStudent> createState() => _ModifyStudentState();
 }
 
-class _ModifyLecturerState extends State<ModifyLecturer> {
+class _ModifyStudentState extends State<ModifyStudent> {
 
   String? id;
   String? name;
   String? email;
   String? phoneNumber;
+  String? regNo;
 
 
   TextEditingController idController = TextEditingController();
   TextEditingController nameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController phoneNumberController = TextEditingController();
+  TextEditingController regNoController = TextEditingController();
   TextEditingController frontNameController = TextEditingController();
   TextEditingController frontEmailController = TextEditingController();
   TextEditingController frontPhoneController = TextEditingController();
+  TextEditingController frontRegNoController = TextEditingController();
 
   @override
   void initState() {
@@ -44,58 +47,59 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
     name = widget.name;
     idController.text = id!;
 
-    _findLecturesById();
+    _findStudentById();
   }
 
-  Future<void> deleteLecturer(String id) async {
-  final sessionManager = SessionManager(); // Retrieve the singleton instance
-  final url = Uri.parse('$SERVER/delete-by-id');
-  final headers = {
-    'Content-Type': 'application/json',
-    'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
-  };
-  final body = jsonEncode({'id': id});
+  Future<void> deleteStudent(String id) async {
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+    final url = Uri.parse('$SERVER/delete-by-id');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+    };
+    final body = jsonEncode({'id': id});
 
-  try {
-    final response = await http.post(url, headers: headers, body: body);
+    try {
+      final response = await http.post(url, headers: headers, body: body);
 
-    if (response.statusCode == 201) {
-      print('Lecturer deleted successfully by ID');
-    } else {
-      print('Failed to delete lecturer by ID: ${response.body}');
+      if (response.statusCode == 201) {
+        print('student deleted successfully by ID');
+      } else {
+        print('Failed to delete student by ID: ${response.body}');
+      }
+    } catch (error) {
+      print('Error deleting student by ID: $error');
     }
-  } catch (error) {
-    print('Error deleting lecturer by ID: $error');
   }
-}
 
-  Future<void> updateLecturerById(String id, String name, String email, String phone) async {
-  final sessionManager = SessionManager(); // Retrieve the singleton instance
-  final url = Uri.parse('$SERVER/update-lecturer/$id');
-  final headers = {
-    'Content-Type': 'application/json',
-    'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
-  };
-  final body = jsonEncode({
-    'name': name,
-    'email': email,
-    'phone': phone,
-  });
+  Future<void> updateStudentById(String id, String name, String email, String phone, String regNo) async {
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+    final url = Uri.parse('$SERVER/update-student/$id');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+    };
+    final body = jsonEncode({
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'sc_number': regNo
+    });
 
-  try {
-    final response = await http.put(url, headers: headers, body: body);
+    try {
+      final response = await http.put(url, headers: headers, body: body);
 
-    if (response.statusCode == 200) {
-      print('Lecturer updated successfully');
-    } else {
-      print('Failed to update lecturer: ${response.body}');
+      if (response.statusCode == 200) {
+        print('student updated successfully');
+      } else {
+        print('Failed to update student: ${response.body}');
+      }
+    } catch (error) {
+      print('Error updating student: $error');
     }
-  } catch (error) {
-    print('Error updating lecturer: $error');
   }
-}
 
-  Future<void> _findLecturesById() async {
+  Future<void> _findStudentById() async {
     try {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -103,7 +107,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
       var body = jsonEncode({'id': id!});
 
       final response = await http.post(
-        Uri.parse('$SERVER/single-lecturer'),
+        Uri.parse('$SERVER/single-student'),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json', // Indicate that the body is JSON
@@ -120,12 +124,16 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
           name = jsonResponse['name'];
           email = jsonResponse['email'];
           phoneNumber = jsonResponse['phone'];
+          if(jsonResponse['sc_number'] == null) regNo = "null";
+          else regNo = jsonResponse['sc_number'];
           nameController.text = name!;
           emailController.text = email!;
           phoneNumberController.text = phoneNumber!;
-          frontNameController.text = name!;
-          frontEmailController.text = email!;
-          frontPhoneController.text = phoneNumber!;
+          regNoController.text = regNo!;
+          frontNameController = nameController;
+          frontEmailController = emailController;
+          frontPhoneController = phoneNumberController;
+          frontRegNoController = regNoController;
         });
       } else {
         name = null;
@@ -296,7 +304,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                   ),
                   const Center(
                     child: Text(
-                      'Lecturer',
+                      'Student',
                       style: TextStyle(
                         fontFamily: 'Roboto',
                         fontWeight: FontWeight.w500,
@@ -353,7 +361,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Lecturer ID: ',
+                                'Student ID: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -388,7 +396,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Lecturer Name: ',
+                                'Student Name: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -423,7 +431,42 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Lecturer Email: ',
+                                'Student Register Number: ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 5,
+                              child: Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE1FCE2),
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: TextField(
+                                  enabled: false, // Non-editable
+                                  controller: frontRegNoController,
+                                  decoration: const InputDecoration(
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Expanded(
+                              flex: 5,
+                              child: Text(
+                                'Student Email: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -458,7 +501,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Lecturer Phone: ',
+                                'Student Phone: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -488,7 +531,6 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -510,31 +552,38 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                   nameController.text = name!;
                                   emailController.text = email!;
                                   phoneNumberController.text = phoneNumber!;
+                                  regNoController.text = regNo!;
 
                                   showDialog(
                                     context: context,
                                     builder: (BuildContext context) {
                                       return AlertDialog(
-                                        title: const Text('Modify Lecturer'),
+                                        title: const Text('Modify Student'),
                                         content: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             TextField(
                                               controller: nameController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Lecturer Name',
+                                                labelText: 'Student Name',
+                                              ),
+                                            ),
+                                            TextField(
+                                              controller: regNoController,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Student Register Number',
                                               ),
                                             ),
                                             TextField(
                                               controller: emailController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Lecturer Email',
+                                                labelText: 'Student Email',
                                               ),
                                             ),
                                             TextField(
                                               controller: phoneNumberController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Lecturer Phone Number',
+                                                labelText: 'Student Phone Number',
                                               ),
                                             ),
                                           ],
@@ -545,17 +594,20 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                               nameController.clear();
                                               emailController.clear();
                                               phoneNumberController.clear();
+                                              regNoController.clear();
                                             },
                                             child: const Text('Clear'),
                                           ),
                                           TextButton(
                                             onPressed: () async {
-                                              if (nameController.text.isEmpty || emailController.text.isEmpty || phoneNumberController.text.isEmpty) {
+                                              if (nameController.text.isEmpty || emailController.text.isEmpty || phoneNumberController.text.isEmpty || regNoController.text.isEmpty) {
                                                 showTopSnackBar(context, 'All fields are required.', Colors.red); // Red snackbar for error
                                               } else if (!RegExp(r'^\d+$').hasMatch(phoneNumberController.text)) {
                                                 showTopSnackBar(context, 'Phone number must contain only digits.', Colors.red); // Red snackbar for error
-                                              } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailController.text)) {
                                                 showTopSnackBar(context, 'Invalid email format.', Colors.red); // Red snackbar for error
+                                              }else if(!RegExp(r'^[A-Za-z]{2}/20\d{2}/\d{5}$').hasMatch(regNoController.text)) {
+                                                showTopSnackBar(context, 'Invalid Register Number format.', Colors.red); // Red snackbar for error
+
                                               } else {
                                                 showDialog(
                                                   context: context,
@@ -571,13 +623,13 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                                 );
 
                                                 try {
-                                                  await updateLecturerById(id!, nameController.text, emailController.text, phoneNumberController.text);
-                                                  await _findLecturesById(); // Update the fields with the new values
+                                                  await updateStudentById(id!, nameController.text, emailController.text, phoneNumberController.text, regNoController.text);
+                                                  await _findStudentById();
                                                   Navigator.pop(context); // Close the progress dialog
                                                   Navigator.pop(context); // Close the modify Assistant screen
                                                   showTopSnackBar(context, 'Assistant details updated successfully.', Colors.green); // Green snackbar for success
                                                 } catch (error) {
-                                                  _findLecturesById(); // Reset the fields to the original values
+                                                  _findStudentById(); // Reset the fields to the original values
                                                   Navigator.pop(context); // Close the progress dialog
                                                   Navigator.pop(context);
                                                   showTopSnackBar(context, 'Failed to update assistant: $error', Colors.red); // Red snackbar for error
@@ -621,7 +673,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                     builder: (BuildContext context) {
                                       return AlertDialog(
                                         title: const Text('Confirm Deletion'),
-                                        content: const Text('Are you sure you want to delete this lecturer?'),
+                                        content: const Text('Are you sure you want to delete this student?'),
                                         actions: [
                                           TextButton(
                                             onPressed: () {
@@ -637,7 +689,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                                 barrierDismissible: false,
                                                 builder: (BuildContext context) {
                                                   return const AlertDialog(
-                                                    title: Text('Deleting Lecturer'),
+                                                    title: Text('Deleting student'),
                                                     content: Column(
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
@@ -648,15 +700,16 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                                 },
                                               );
                                               try {
-                                                await deleteLecturer(id!);
-                                                Navigator.of(context).pop(); // Close the deleting dialog
+                                                await deleteStudent(id!);
                                                 Navigator.pop(context);
-                                                showTopSnackBar(context, 'Lecturer deleted successfully', Colors.green);
-                                                // Close the modify lecturer screen
+                                                Navigator.pop(context); // Close the modify Assistant screen
+                                                showTopSnackBar(context, 'Assistant deleted successfully', Colors.green);
+                                                // Close the modify Assistant screen
                                               } catch (error) {
                                                 Navigator.of(context).pop(); // Close the deleting dialog
-                                                showTopSnackBar(context, "Failed to Delete Lecturer", Colors.red);
+                                                showTopSnackBar(context, "Failed to Delete Assistant", Colors.red);
                                               }
+
                                             },
                                             child: const Text('Yes'),
                                           ),
@@ -681,178 +734,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                       ],
                     ),
                   ),
-                  //lecurer courses part
-                  // const SizedBox(height: 20,),
-                  // Container(
-                  //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  //   margin: const EdgeInsets.symmetric(horizontal: 20),
-                  //   decoration: BoxDecoration(
-                  //     border: Border.all(
-                  //       color: const Color(0xFF88C98A),
-                  //       width: 2,
-                  //     ),
-                  //     borderRadius: BorderRadius.circular(40),
-                  //   ),
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.start,
-                  //     children: [
-                  //       const SizedBox(height: 10),
-                  //       const Row(
-                  //         children: [
-                  //           Expanded(
-                  //             child: Divider(
-                  //               thickness: 1,
-                  //               color: Color(0xFF88C98A),
-                  //             ),
-                  //           ),
-                  //           Padding(
-                  //             padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  //             child: Text(
-                  //               'Courses',
-                  //               style: TextStyle(
-                  //                 fontSize: 16,
-                  //                 fontFamily: 'Roboto',
-                  //                 fontWeight: FontWeight.w500,
-                  //                 color: Color(0xFF88C98A),
-                  //               ),
-                  //             ),
-                  //           ),
-                  //           Expanded(
-                  //             child: Divider(
-                  //               thickness: 1,
-                  //               color: Color(0xFF88C98A),
-                  //             ),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //       const SizedBox(height: 10),
-                  //
-                  //       // List of courses
-                  //       Column(
-                  //         crossAxisAlignment: CrossAxisAlignment.start,
-                  //         children: courses.map((course) {
-                  //           return Padding(
-                  //             padding: const EdgeInsets.only(bottom: 8.0),
-                  //             child: Text(
-                  //               '${course['courseNumber']} - ${course['courseName']}',
-                  //               style: const TextStyle(
-                  //                 fontSize: 16,
-                  //                 fontFamily: 'Roboto',
-                  //                 fontWeight: FontWeight.w500,
-                  //                 color: Colors.black,
-                  //               ),
-                  //             ),
-                  //           );
-                  //         }).toList(),
-                  //       ),
-                  //
-                  //       const SizedBox(height: 10), // Add spacing between the list and the button
-                  //
-                  //       // Remove Courses Button
-                  //       Row(
-                  //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //         children: [
-                  //           SizedBox(
-                  //             width: 120,
-                  //             height: 40,
-                  //             child: ElevatedButton(
-                  //               style: ElevatedButton.styleFrom(
-                  //                 backgroundColor: const Color(0xFF88C98A), // Button background color
-                  //                 shape: RoundedRectangleBorder(
-                  //                   side: const BorderSide(color: Colors.white, width: 2),
-                  //                   borderRadius: BorderRadius.circular(15), // Border radius of 15
-                  //                 ),
-                  //
-                  //               ),
-                  //
-                  //               onPressed: () {},
-                  //               child: const Text(
-                  //                   'Add',
-                  //                   style: TextStyle(
-                  //                       fontFamily: 'Roboto',
-                  //                       fontWeight: FontWeight.w500,
-                  //                       fontSize: 17,
-                  //                       color: Colors.white
-                  //                   )),
-                  //             ),
-                  //           ),
-                  //           SizedBox(
-                  //             height: 40,
-                  //             child: ElevatedButton(
-                  //               style: ElevatedButton.styleFrom(
-                  //                 backgroundColor: const Color(0xFFFA8D7E), // Button background color
-                  //                 shape: RoundedRectangleBorder(
-                  //                   side: const BorderSide(color: Colors.white, width: 2),
-                  //                   borderRadius: BorderRadius.circular(15), // Border radius of 15
-                  //                 ),
-                  //               ),
-                  //               onPressed: () {
-                  //                 showDialog(
-                  //                   context: context,
-                  //                   builder: (BuildContext context) {
-                  //                     return StatefulBuilder(
-                  //                       builder: (BuildContext context, StateSetter setStateDialog) {
-                  //                         return AlertDialog(
-                  //                           title: const Text('Remove Courses'),
-                  //                           content: SizedBox(
-                  //                             height: 300,
-                  //                             width: 300,
-                  //                             child: ListView(
-                  //                               children: courses.map((course) {
-                  //                                 return CheckboxListTile(
-                  //                                   title: Text('${course['courseNumber']} - ${course['courseName']}'),
-                  //                                   value: course['selected'],
-                  //                                   onChanged: (bool? value) {
-                  //                                     setStateDialog(() {
-                  //                                       course['selected'] = value!;
-                  //                                     });
-                  //                                   },
-                  //                                 );
-                  //                               }).toList(),
-                  //                             ),
-                  //                           ),
-                  //                           actions: [
-                  //                             TextButton(
-                  //                               onPressed: () {
-                  //                                 setState(() {
-                  //                                   // Update the parent widget
-                  //                                   courses.removeWhere((course) => course['selected']);
-                  //                                 });
-                  //                                 Navigator.pop(context);
-                  //                               },
-                  //                               child: const Text('Delete Selected'),
-                  //                             ),
-                  //                             TextButton(
-                  //                               onPressed: () {
-                  //                                 Navigator.pop(context);
-                  //                               },
-                  //                               child: const Text('Close'),
-                  //                             ),
-                  //                           ],
-                  //                         );
-                  //                       },
-                  //                     );
-                  //                   },
-                  //                 );
-                  //               },
-                  //
-                  //               child: const Text(
-                  //                 'Remove',
-                  //                 style: TextStyle(
-                  //                   fontFamily: 'Roboto',
-                  //                   fontWeight: FontWeight.w500,
-                  //                   fontSize: 17,
-                  //                   color: Colors.white,
-                  //                 ),
-                  //               ),
-                  //             ),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-                  // const SizedBox(height: 50),
+
                 ],
               ),
             ),
