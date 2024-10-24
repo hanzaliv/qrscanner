@@ -17,6 +17,7 @@ class _LoginState extends State<Login> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  bool _isPasswordObscured = true;
   String? role;
 
   void showTopSnackBar(BuildContext context, String message, Color color) {
@@ -115,6 +116,7 @@ class _LoginState extends State<Login> {
     }
 
   }
+
   void _showLoadingDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -165,64 +167,91 @@ class _LoginState extends State<Login> {
                       ],
                     ),
                     padding: const EdgeInsets.all(16),
-                    child: Column(
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        const Text(
-                          'QR Vault',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                        Opacity(
+                          //watermark image
+                          opacity: 0.1,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 200.0,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _usernameController,
-                          decoration: InputDecoration(
-                            labelText: 'User Name',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            suffixIcon: const Icon(Icons.visibility_off),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                        Column(
                           children: [
-                            ElevatedButton(
-                              onPressed: _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                            const Text(
+                              'QR Vault',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
                               ),
-                              child: const Text('Log In'),
                             ),
-                            ElevatedButton(
-                              onPressed: () {
-                                _usernameController.clear();
-                                _passwordController.clear();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: _usernameController,
+                              decoration: InputDecoration(
+                                labelText: 'User Name',
+                                border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: const Text('Clear'),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: _isPasswordObscured,
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isPasswordObscured
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                  ),
+                                  onPressed: () {
+                                    // Toggle the password visibility
+                                    setState(() {
+                                      _isPasswordObscured = !_isPasswordObscured;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: _login,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text('Log In'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _usernameController.clear();
+                                    _passwordController.clear();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text('Clear'),
+                                ),
+                              ],
                             ),
                           ],
                         ),

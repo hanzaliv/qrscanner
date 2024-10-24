@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'session_manager.dart';
 import 'loggin.dart';
+import 'ProfilePage.dart';
 
 class Menu extends StatelessWidget {
   const Menu({super.key});
@@ -35,6 +36,11 @@ class Menu extends StatelessWidget {
               ),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                );
+
               },
             ),
             const Divider(),
