@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'home.dart';
+//import 'home.dart';
 
-import 'loggin.dart';
+//import 'loggin.dart';
+
+import 'ProfilePage.dart';
 
 
 void main() => runApp(MaterialApp(
@@ -20,5 +22,5 @@ void main() => runApp(MaterialApp(
       });
     });
   },
-  home: const Login(),
+  home: const ProfilePage(),
 ));
