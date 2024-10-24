@@ -52,6 +52,9 @@ class _LoginState extends State<Login> {
 
   // Function to handle login
   Future<void> _login() async {
+
+    _showLoadingDialog(context); // Show loading dialog
+
     String username = _usernameController.text;
     String password = _passwordController.text;
 
@@ -71,7 +74,7 @@ class _LoginState extends State<Login> {
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
-        String message = data['message'];
+        // String message = data['message'];
         role = data['role'];
 
         // Extract cookies from the response headers
@@ -87,7 +90,7 @@ class _LoginState extends State<Login> {
           showTopSnackBar(context, 'Login successful', Colors.green);
         }
       } else {
-        print('Login failed with status code ${response.statusCode}');
+        // print('Login failed with status code ${response.statusCode}');
         // Show an error message if login fails
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login failed')),
@@ -95,10 +98,12 @@ class _LoginState extends State<Login> {
       }
     } catch (e) {
       // Handle network or other errors
-      print('Error during login: $e');
+      // print('Error during login: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error during login: $e')),
       );
+    }finally{
+      Navigator.of(context).pop(); // Close the loading dialog
     }
 
     if (loginSuccess) {
@@ -108,6 +113,18 @@ class _LoginState extends State<Login> {
         MaterialPageRoute(builder: (context) => Home(userRole: role!,)),
       );
     }
+
+  }
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
   }
 
   @override

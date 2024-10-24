@@ -920,6 +920,7 @@ class _StudentState extends State<Student> {
                                     );
                                     try {
                                       await addStudent(username!,password!, name!, email!, phone!, regNo!);
+                                      await _fetchStudents();
                                       Navigator.pop(context); // Close the progress dialog
                                       showDialog(
                                         context: context,

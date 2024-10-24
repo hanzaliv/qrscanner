@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 // import 'package:intl/intl.dart';
 
 // import 'courseModify.dart';
+import 'course.dart';
 import '../session_manager.dart';
 import '../.env';
 import '../menu.dart';
@@ -394,20 +395,20 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                     context: context,
                                     builder: (BuildContext context) {
                                       return AlertDialog(
-                                        title: const Text('Modify Assistant'),
+                                        title: const Text('Modify Course'),
                                         content: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             TextField(
                                               controller: nameController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Assistant Name',
+                                                labelText: 'Course Name',
                                               ),
                                             ),
                                             TextField(
                                               controller: numberController,
                                               decoration: const InputDecoration(
-                                                labelText: 'Assistant Email',
+                                                labelText: 'Course Email',
                                               ),
                                             ),
                                           ],
@@ -442,13 +443,13 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                                   await updateCourseById(id!, nameController.text, numberController.text);
                                                   await findCourseById(widget.courseID);
                                                   Navigator.pop(context); // Close the progress dialog
-                                                  Navigator.pop(context); // Close the modify Assistant screen
-                                                  showTopSnackBar(context, 'Assistant details updated successfully.', Colors.green); // Green snackbar for success
+                                                  Navigator.pop(context); // Close the modify Course screen
+                                                  showTopSnackBar(context, 'Course details updated successfully.', Colors.green); // Green snackbar for success
                                                 } catch (error) {
                                                   await findCourseById(widget.courseID);
                                                   Navigator.pop(context); // Close the progress dialog
                                                   Navigator.pop(context);
-                                                  showTopSnackBar(context, 'Failed to update assistant: $error', Colors.red); // Red snackbar for error
+                                                  showTopSnackBar(context, 'Failed to update Course: $error', Colors.red); // Red snackbar for error
                                                 }
                                               }
                                             },
@@ -488,7 +489,7 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                     builder: (BuildContext context) {
                                       return AlertDialog(
                                         title: const Text('Confirm Deletion'),
-                                        content: const Text('Are you sure you want to delete this Assistant?'),
+                                        content: const Text('Are you sure you want to delete this Course?'),
                                         actions: [
                                           TextButton(
                                             onPressed: () {
@@ -504,7 +505,7 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                                 barrierDismissible: false,
                                                 builder: (BuildContext context) {
                                                   return const AlertDialog(
-                                                    title: Text('Deleting Assistant'),
+                                                    title: Text('Deleting Course'),
                                                     content: Column(
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
@@ -516,13 +517,19 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                               );
                                               try {
                                                 await deleteCourse(widget.courseID);
-                                                Navigator.pop(context);
-                                                Navigator.pop(context); // Close the modify Assistant screen
-                                                showTopSnackBar(context, 'Assistant deleted successfully', Colors.green);
-                                                // Close the modify Assistant screen
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => const Course(),
+                                                  ),
+                                                );
+                                                showTopSnackBar(context, 'Course deleted successfully', Colors.green);
                                               } catch (error) {
                                                 Navigator.of(context).pop(); // Close the deleting dialog
-                                                showTopSnackBar(context, "Failed to Delete Assistant", Colors.red);
+                                                showTopSnackBar(context, "Failed to Delete Course", Colors.red);
                                               }
                                             },
                                             child: const Text('Yes'),

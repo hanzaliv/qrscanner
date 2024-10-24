@@ -3,6 +3,7 @@ import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 import 'package:dropdown_search/dropdown_search.dart';
 
+import 'group.dart';
 import '../session_manager.dart';
 import '../.env';
 import '../menu.dart';
@@ -603,8 +604,15 @@ class _ModifyGroupState extends State<ModifyGroup> {
                                               );
                                               try {
                                                 await deleteStudentGroup(id!);
-                                                Navigator.pop(context);
-                                                Navigator.pop(context); // Close the modify Group screen
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => const Group()
+                                                  ),
+                                                );
                                                 showTopSnackBar(context, 'Group deleted successfully', Colors.green);
                                                 // Close the modify Group screen
                                               } catch (error) {

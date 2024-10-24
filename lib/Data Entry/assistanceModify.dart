@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
+import 'assistance.dart';
 import '../session_manager.dart';
 import '../.env';
 import '../menu.dart';
@@ -574,8 +575,15 @@ class _ModifyAssistanceState extends State<ModifyAssistance> {
                                               );
                                               try {
                                                 await deleteAssistant(id!);
-                                                Navigator.pop(context);
-                                                Navigator.pop(context); // Close the modify Assistant screen
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => Assistance()
+                                                  ),
+                                                );
                                                 showTopSnackBar(context, 'Assistant deleted successfully', Colors.green);
                                                 // Close the modify Assistant screen
                                               } catch (error) {

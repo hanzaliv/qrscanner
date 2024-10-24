@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
+import 'student.dart';
 import '../session_manager.dart';
 import '../menu.dart';
 import '../.env';
@@ -646,8 +647,15 @@ class _ModifyStudentState extends State<ModifyStudent> {
                                               );
                                               try {
                                                 await deleteStudent(id!);
-                                                Navigator.pop(context);
-                                                Navigator.pop(context); // Close the modify Assistant screen
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => const Student(),
+                                                  ),
+                                                );
                                                 showTopSnackBar(context, 'Assistant deleted successfully', Colors.green);
                                                 // Close the modify Assistant screen
                                               } catch (error) {

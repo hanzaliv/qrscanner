@@ -599,6 +599,7 @@ class _AssistanceState extends State<Assistance> {
                                         _emailController.text,
                                         _phoneController.text,
                                       );
+                                      await _fetchAssistance();
                                       Navigator.pop(context); // Close the progress dialog
                                       showDialog(
                                         context: context,

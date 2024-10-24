@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
+import 'lecturer.dart';
 import '../session_manager.dart';
 import '../.env';
 import '../menu.dart';
@@ -592,8 +593,15 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                                               );
                                               try {
                                                 await deleteLecturer(id!);
-                                                Navigator.of(context).pop(); // Close the deleting dialog
-                                                Navigator.pop(context);
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.of(context).pop();
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (context) => const Lecturer()
+                                                  ),
+                                                );
                                                 showTopSnackBar(context, 'Lecturer deleted successfully', Colors.green);
                                                 // Close the modify lecturer screen
                                               } catch (error) {
@@ -624,178 +632,7 @@ class _ModifyLecturerState extends State<ModifyLecturer> {
                       ],
                     ),
                   ),
-                  //lecturer courses part
-                  // const SizedBox(height: 20,),
-                  // Container(
-                  //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  //   margin: const EdgeInsets.symmetric(horizontal: 20),
-                  //   decoration: BoxDecoration(
-                  //     border: Border.all(
-                  //       color: const Color(0xFF88C98A),
-                  //       width: 2,
-                  //     ),
-                  //     borderRadius: BorderRadius.circular(40),
-                  //   ),
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.start,
-                  //     children: [
-                  //       const SizedBox(height: 10),
-                  //       const Row(
-                  //         children: [
-                  //           Expanded(
-                  //             child: Divider(
-                  //               thickness: 1,
-                  //               color: Color(0xFF88C98A),
-                  //             ),
-                  //           ),
-                  //           Padding(
-                  //             padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  //             child: Text(
-                  //               'Courses',
-                  //               style: TextStyle(
-                  //                 fontSize: 16,
-                  //                 fontFamily: 'Roboto',
-                  //                 fontWeight: FontWeight.w500,
-                  //                 color: Color(0xFF88C98A),
-                  //               ),
-                  //             ),
-                  //           ),
-                  //           Expanded(
-                  //             child: Divider(
-                  //               thickness: 1,
-                  //               color: Color(0xFF88C98A),
-                  //             ),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //       const SizedBox(height: 10),
-                  //
-                  //       // List of courses
-                  //       Column(
-                  //         crossAxisAlignment: CrossAxisAlignment.start,
-                  //         children: courses.map((course) {
-                  //           return Padding(
-                  //             padding: const EdgeInsets.only(bottom: 8.0),
-                  //             child: Text(
-                  //               '${course['courseNumber']} - ${course['courseName']}',
-                  //               style: const TextStyle(
-                  //                 fontSize: 16,
-                  //                 fontFamily: 'Roboto',
-                  //                 fontWeight: FontWeight.w500,
-                  //                 color: Colors.black,
-                  //               ),
-                  //             ),
-                  //           );
-                  //         }).toList(),
-                  //       ),
-                  //
-                  //       const SizedBox(height: 10), // Add spacing between the list and the button
-                  //
-                  //       // Remove Courses Button
-                  //       Row(
-                  //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //         children: [
-                  //           SizedBox(
-                  //             width: 120,
-                  //             height: 40,
-                  //             child: ElevatedButton(
-                  //               style: ElevatedButton.styleFrom(
-                  //                 backgroundColor: const Color(0xFF88C98A), // Button background color
-                  //                 shape: RoundedRectangleBorder(
-                  //                   side: const BorderSide(color: Colors.white, width: 2),
-                  //                   borderRadius: BorderRadius.circular(15), // Border radius of 15
-                  //                 ),
-                  //
-                  //               ),
-                  //
-                  //               onPressed: () {},
-                  //               child: const Text(
-                  //                   'Add',
-                  //                   style: TextStyle(
-                  //                       fontFamily: 'Roboto',
-                  //                       fontWeight: FontWeight.w500,
-                  //                       fontSize: 17,
-                  //                       color: Colors.white
-                  //                   )),
-                  //             ),
-                  //           ),
-                  //           SizedBox(
-                  //             height: 40,
-                  //             child: ElevatedButton(
-                  //               style: ElevatedButton.styleFrom(
-                  //                 backgroundColor: const Color(0xFFFA8D7E), // Button background color
-                  //                 shape: RoundedRectangleBorder(
-                  //                   side: const BorderSide(color: Colors.white, width: 2),
-                  //                   borderRadius: BorderRadius.circular(15), // Border radius of 15
-                  //                 ),
-                  //               ),
-                  //               onPressed: () {
-                  //                 showDialog(
-                  //                   context: context,
-                  //                   builder: (BuildContext context) {
-                  //                     return StatefulBuilder(
-                  //                       builder: (BuildContext context, StateSetter setStateDialog) {
-                  //                         return AlertDialog(
-                  //                           title: const Text('Remove Courses'),
-                  //                           content: SizedBox(
-                  //                             height: 300,
-                  //                             width: 300,
-                  //                             child: ListView(
-                  //                               children: courses.map((course) {
-                  //                                 return CheckboxListTile(
-                  //                                   title: Text('${course['courseNumber']} - ${course['courseName']}'),
-                  //                                   value: course['selected'],
-                  //                                   onChanged: (bool? value) {
-                  //                                     setStateDialog(() {
-                  //                                       course['selected'] = value!;
-                  //                                     });
-                  //                                   },
-                  //                                 );
-                  //                               }).toList(),
-                  //                             ),
-                  //                           ),
-                  //                           actions: [
-                  //                             TextButton(
-                  //                               onPressed: () {
-                  //                                 setState(() {
-                  //                                   // Update the parent widget
-                  //                                   courses.removeWhere((course) => course['selected']);
-                  //                                 });
-                  //                                 Navigator.pop(context);
-                  //                               },
-                  //                               child: const Text('Delete Selected'),
-                  //                             ),
-                  //                             TextButton(
-                  //                               onPressed: () {
-                  //                                 Navigator.pop(context);
-                  //                               },
-                  //                               child: const Text('Close'),
-                  //                             ),
-                  //                           ],
-                  //                         );
-                  //                       },
-                  //                     );
-                  //                   },
-                  //                 );
-                  //               },
-                  //
-                  //               child: const Text(
-                  //                 'Remove',
-                  //                 style: TextStyle(
-                  //                   fontFamily: 'Roboto',
-                  //                   fontWeight: FontWeight.w500,
-                  //                   fontSize: 17,
-                  //                   color: Colors.white,
-                  //                 ),
-                  //               ),
-                  //             ),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-                  // const SizedBox(height: 50),
+
                 ],
               ),
             ),

@@ -868,6 +868,7 @@ class _LecturerState extends State<Lecturer> {
                                     );
                                     try {
                                       await addLecturer(username!,password!, name!, email!, phone!);
+                                      await _fetchLecturers();
                                       Navigator.pop(context); // Close the progress dialog
                                       showDialog(
                                         context: context,

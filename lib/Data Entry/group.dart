@@ -555,6 +555,7 @@ class _GroupState extends State<Group> {
                                       await addGroup(
                                         nameController.text,
                                       );
+                                      await _fetchGroups();
                                       Navigator.pop(context); // Close the progress dialog
                                       showDialog(
                                         context: context,

@@ -290,6 +290,7 @@ class _DetailedAttendancePageState extends State<DetailedAttendancePage> {
           ),
           onPressed: () {
             Navigator.of(context).pop();
+            Navigator.of(context).pop();
           },
           child: Padding(
             padding: const EdgeInsets.all(10.0),

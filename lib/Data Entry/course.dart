@@ -113,7 +113,7 @@ class _CourseState extends State<Course> {
 
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
-      addedCourseId = responseData['courseId'];
+      addedCourseId = responseData['courseId'].toString();
       showTopSnackBar(context, "Course Added Successfully with ID: $addedCourseId", Colors.green);
     } else {
       showTopSnackBar(context, 'Failed to add course: ${response.body}', Colors.red);
@@ -607,8 +607,8 @@ class _CourseState extends State<Course> {
                                   ),
             
                                 ),
-            
-                                onPressed: () async{
+
+                                onPressed: () async {
                                   if (courseNumber != null && courseName != null) {
                                     showDialog(
                                       context: context,
@@ -620,7 +620,9 @@ class _CourseState extends State<Course> {
                                       },
                                     );
 
-                                    await addCourse(courseNumber!, courseName!).then((_) {
+                                    try {
+                                      await addCourse(courseNumber!, courseName!);
+                                      _fetchCourses(); // Fetch courses again to update the list
                                       Navigator.of(context).pop(); // Close the dialog
                                       Navigator.push(
                                         context,
@@ -628,7 +630,10 @@ class _CourseState extends State<Course> {
                                           builder: (context) => ModifyCourses(courseID: addedCourseId!,),
                                         ),
                                       );
-                                    });
+                                    } catch (error) {
+                                      Navigator.of(context).pop(); // Close the dialog in case of error
+                                      _showAlertDialog(context, 'Failed to add course: $error');
+                                    }
                                   } else {
                                     _showAlertDialog(context, 'Please fill in all fields');
                                   }
