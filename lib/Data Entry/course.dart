@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
+// import 'package:intl/intl.dart';
 
 import 'courseModify.dart';
 import '../session_manager.dart';
 import '../.env';
+import '../menu.dart';
+
 
 
 
@@ -25,16 +27,36 @@ class _CourseState extends State<Course> {
   TextEditingController courseNumberController = TextEditingController();
   TextEditingController courseNameController = TextEditingController();
 
-  List<Map<String, dynamic>> courses = []; // To store the course details
-  List<String> courseUnitNumbers = []; // List of course unit numbers for the dropdown
+  List<Map<String, Map<String, String>>> courses = []; // To store the course details
+  List<Map<String, String>> courseNumberAndIds = []; // List to store course numbers and IDs
+
+  List<String> courseUnitNumbers = []; // List of course unit numbers for the dropdown  List<String> courseUnitNumbers = []; // List of course unit numbers for the dropdown
   List<String> courseUnitNames = []; // List of course unit names for the dropdown
+
+  Map<String, String> courseMap = {}; // To store the course name and ID mapping
 
   String? search;
   String? courseNumber;
   String? courseName;
   String? lecturer;
+  String? addedCourseId;
+  String? selectedCourseId;
 
-  Future<List<String>> _fetchCourses() async {
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses(); // Call the function to fetch courses on page load
+  }
+
+  @override
+  void dispose() {
+    // Dispose the controllers when the widget is removed from the tree
+    courseNumberController.dispose();
+    courseNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchCourses() async {
     try {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -51,41 +73,51 @@ class _CourseState extends State<Course> {
         List<dynamic> jsonResponse = json.decode(response.body);
 
         setState(() {
+
+          courseMap = {
+            for (var course in jsonResponse)
+              course['course_unit_number'].toString(): course['id'].toString()
+          };
           // Extract course_unit_number from the response and store it in courseUnitNumbers list
-          courseUnitNumbers = jsonResponse
-              .map((course) => course['course_unit_number'].toString())
-              .toList();
+          courseUnitNumbers = courseMap.keys.toList(); // List of lecturer names for dropdown
         });
 
-        return jsonResponse
-            .map<String>((course) => course['course_unit_number'].toString())
-            .toList();
       } else {
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load courses')),
+          const SnackBar(content: Text('Failed to load courses')),
         );
-        return []; // Return empty list on failure
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching courses: $error')),
       );
-      return []; // Return empty list on error
     }
   }
-  @override
-  void initState() {
-    super.initState();
-    _fetchCourses(); // Call the function to fetch courses on page load
-  }
 
-  @override
-  void dispose() {
-    // Dispose the controllers when the widget is removed from the tree
-    courseNumberController.dispose();
-    courseNameController.dispose();
-    super.dispose();
+  Future<void> addCourse(String courseUnitNumber, String courseUnitName) async {
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+
+    final response = await http.post(
+      Uri.parse('$SERVER/add-course'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+      },
+      body: jsonEncode({
+        'course_unit_number': courseUnitNumber,
+        'course_unit_name': courseUnitName,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      addedCourseId = responseData['courseId'];
+      showTopSnackBar(context, "Course Added Successfully with ID: $addedCourseId", Colors.green);
+    } else {
+      showTopSnackBar(context, 'Failed to add course: ${response.body}', Colors.red);
+    }
   }
 
   void clearSelections() {
@@ -113,6 +145,37 @@ class _CourseState extends State<Course> {
         );
       },
     );
+  }
+
+  void showTopSnackBar(BuildContext context, String message, Color color) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50.0, // You can adjust the position
+        left: MediaQuery.of(context).size.width * 0.1,
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: color, // Set the background color based on the input
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Remove the overlay after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
 
@@ -151,66 +214,7 @@ class _CourseState extends State<Course> {
       ),
       resizeToAvoidBottomInset: false,
 
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           Positioned(
@@ -322,6 +326,9 @@ class _CourseState extends State<Course> {
                                   onChanged: (value) {
                                     setState(() {
                                       search = value; // Update selected course unit
+                                      selectedCourseId = courseMap[search!];
+
+                                      // selectedCourseId = courseNumberAndIds.firstWhere((course) => course['course_unit_number'] == search)['id'];
                                     });
                                   },
                                   selectedItem: search,
@@ -427,7 +434,7 @@ class _CourseState extends State<Course> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ModifyCourses(),
+                                    builder: (context) => ModifyCourses(courseID: selectedCourseId!,),
                                   ),
                                 );
                               }                            },
@@ -532,7 +539,7 @@ class _CourseState extends State<Course> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       courseNumber = value;
                                     });
@@ -574,127 +581,13 @@ class _CourseState extends State<Course> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       courseName = value;
                                     });
                                   },
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            const Expanded(
-                              flex: 5,
-                              child: Text(
-                                'Lecturer: ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 5,
-                              child: DropdownSearch<String>(
-                                key: dropDownKeyLecturer,
-                                items: (filter, infiniteScrollProps) =>
-                                ["PHY2222", "PHY12222", "PHY1234", "CSC1232","CHE2163"],
-                                onChanged: (value) {
-                                  setState(() {
-                                    lecturer = value; // Update selected course unit
-                                  });
-                                },
-                                selectedItem: lecturer,
-                                popupProps: PopupProps.menu(
-                                  showSearchBox: true,
-                                  fit: FlexFit.loose,
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                                    maxWidth: 308,
-                                  ),
-            
-                                  containerBuilder: (context, popupWidget) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE1FCE2), // Set the same background color
-                                        borderRadius: BorderRadius.circular(0), // Set the same border radius
-                                      ),
-                                      width: 308, // Set the width of the popup
-                                      child: popupWidget, // Return the actual popup content inside the styled container
-                                    );
-                                  },
-                                  searchFieldProps: TextFieldProps(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search', // Set the placeholder text
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border for search box
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey, // Border color for the search box
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                                    ),
-                                  ),
-                                ),
-            
-                                decoratorProps: DropDownDecoratorProps(
-                                  decoration  : InputDecoration(
-                                    filled: true,
-                                    fillColor: const Color(0xFFE1FCE2), // Set background color
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Rounded border
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent, // No border color
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25),
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    // Set the label text and border behavior when label is focused
-                                  ),
-                                ),
-            
-                                dropdownBuilder: (context, selectedItem) => Container(
-                                  alignment: Alignment.centerLeft,
-                                  width: 308, // Set width to 308
-                                  height: 35,  // Set height to 35
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text(
-                                    selectedItem ?? "", // Display the selected item or placeholder
-                                    style: const TextStyle(
-                                      fontFamily: 'Roboto',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                      color: Colors.black, // You can customize the text style
-                                    ),
-                                  ),
-                                ),
-            
-            
-                              ),
-            
                             ),
                           ],
                         ),
@@ -715,17 +608,29 @@ class _CourseState extends State<Course> {
             
                                 ),
             
-                                onPressed: () {
-                                  if(courseNumber == null || courseName == null || lecturer == null) {
-                                    _showAlertDialog(context, 'Please fill in all fields');
-                                  } else {
-                                    // Save the course details
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ModifyCourses(),
-                                      ),
+                                onPressed: () async{
+                                  if (courseNumber != null && courseName != null) {
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (BuildContext context) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      },
                                     );
+
+                                    await addCourse(courseNumber!, courseName!).then((_) {
+                                      Navigator.of(context).pop(); // Close the dialog
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ModifyCourses(courseID: addedCourseId!,),
+                                        ),
+                                      );
+                                    });
+                                  } else {
+                                    _showAlertDialog(context, 'Please fill in all fields');
                                   }
                                 },
                                 child: const Text(

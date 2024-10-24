@@ -7,6 +7,8 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'studentModify.dart';
 import '../session_manager.dart';
 import '../.env';
+import '../menu.dart';
+
 
 
 class Student extends StatefulWidget {
@@ -74,13 +76,13 @@ class _StudentState extends State<Student> {
       if (response.statusCode == 201) {
         var jsonResponse = json.decode(response.body);
         id = jsonResponse['id'].toString();
-        print('student added successfully with ID: $id');
+        // print('student added successfully with ID: $id');
         // Save the student ID as needed
       } else {
-        print('Failed to add student: ${response.body}');
+        // print('Failed to add student: ${response.body}');
       }
     } catch (error) {
-      print('Error adding student: $error');
+      // print('Error adding student: $error');
     }
   }
 
@@ -226,66 +228,7 @@ class _StudentState extends State<Student> {
       ),
       resizeToAvoidBottomInset: false,
 
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           Positioned(
@@ -611,7 +554,7 @@ class _StudentState extends State<Student> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       username = value;
                                     });
@@ -652,7 +595,7 @@ class _StudentState extends State<Student> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       name = value;
                                     });
@@ -702,6 +645,11 @@ class _StudentState extends State<Student> {
                                       }
                                     });
                                   },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      regNo = value;
+                                    });
+                                  },
 
                                 ),
                               ),
@@ -748,6 +696,11 @@ class _StudentState extends State<Student> {
                                       }
                                     });
                                   },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      email = value;
+                                    });
+                                  },
                                 ),
                               ),
                             ),
@@ -791,6 +744,11 @@ class _StudentState extends State<Student> {
                                         _showAlertDialog(context, 'Phone number must be 9 or 10 digits');
                                         phone = null;
                                       }
+                                    });
+                                  },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      phone = value;
                                     });
                                   },
                                 ),
@@ -842,7 +800,7 @@ class _StudentState extends State<Student> {
                                       },
                                     ),
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       password = value;
                                     });
@@ -903,6 +861,11 @@ class _StudentState extends State<Student> {
                                         _showAlertDialog(context, 'Passwords do not match');
                                         confirmPassword = null;
                                       }
+                                    });
+                                  },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      confirmPassword = value;
                                     });
                                   },
                                 ),

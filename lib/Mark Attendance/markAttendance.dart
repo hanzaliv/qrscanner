@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import 'package:dropdown_search/dropdown_search.dart';
-import '.env';
+import '../.env';
 
-import 'session_manager.dart';
+import '../session_manager.dart';
 import 'scanner.dart';
 
 class MarkAttendance extends StatefulWidget {
@@ -61,7 +61,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
     try {
       var formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
       var formattedStartTime = DateFormat('HH:mm').format(convertTimeOfDayToDateTime(startTime!));
-      var formattedEndTime = DateFormat('HH:mm').format(convertTimeOfDayToDateTime(startTime!));
+      var formattedEndTime = DateFormat('HH:mm').format(convertTimeOfDayToDateTime(endTime!));
 
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -69,9 +69,9 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       var body = jsonEncode({
         'course_id': selectedCourseUnit,
         'lecture_user_id': selectedLecturerId,
-        'date': formattedDate.toString(),
-        'from': formattedStartTime.toString(),
-        'to': formattedEndTime.toString(),
+        'date': formattedDate,
+        'from': formattedStartTime,
+        'to': formattedEndTime,
         'student_group_id': selectedStudentGroupId,
       });
 
@@ -90,7 +90,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
 
         setState(() {
           isLectureAdded = true;
-          print('jsonResponse: $jsonResponse');
+          // print('jsonResponse: $jsonResponse');
           lectureId = jsonResponse['lecId'].toString();
         });
       } else {
@@ -98,16 +98,16 @@ class _MarkAttendanceState extends State<MarkAttendance> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to add lecture')),
         );
-        print("status code: ${response.statusCode}");
-        var jsonResponse = json.decode(response.body);
-        print('jsonResponse: $jsonResponse');
+        // print("status code: ${response.statusCode}");
+        // var jsonResponse = json.decode(response.body);
+        // print('jsonResponse: $jsonResponse');
 
 
 
       }
     } catch (error, stackTrace) {
-      print('Error: $error');
-      print('StackTrace: $stackTrace');
+      // print('Error: $error');
+      // print('StackTrace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error adding lecture: $error')),
       );
@@ -145,7 +145,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       } else {
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load courses')),
+          const SnackBar(content: Text('Failed to load courses')),
         );
         return []; // Return empty list on failure
       }
@@ -600,7 +600,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
                         //
                         // ),
                         DropdownSearch<String>(
-                          key: Key('courseDropdown'),
+                          key: dropDownKeyCourseUnit,
                           // items: (filter, infiniteScrollProps) => _fetchCourses(),
                           items: (filter, infiniteScrollProps) => courseUnitNumbers, // Use the fetched course units
                           onChanged: (value) {

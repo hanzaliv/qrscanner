@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
-import 'session_manager.dart';
-import '.env';
+import '../session_manager.dart';
+import '../.env';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../menu.dart';
+
 
 class ScannerPage extends StatefulWidget {
 
@@ -41,8 +43,8 @@ class _ScannerPageState extends State<ScannerPage> {
   Future<void> _markStudentAttendance() async {
     try {
       final sessionManager = SessionManager(); // Retrieve the singleton instance
-      print('lectureId: ${widget.lectureId}');
-      print('scNumber: $scNumber');
+      // print('lectureId: ${widget.lectureId}');
+      // print('scNumber: $scNumber');
       // Prepare the request body
       var body = jsonEncode({
         'lec_id': widget.lectureId,
@@ -60,7 +62,7 @@ class _ScannerPageState extends State<ScannerPage> {
       );
 
       if (response.statusCode == 200) {
-        var jsonResponse = json.decode(response.body);
+        // var jsonResponse = json.decode(response.body);
 
         setState(() {
 
@@ -74,13 +76,13 @@ class _ScannerPageState extends State<ScannerPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No Matching Student Found')),
         );
-        print('No matching student found');
+        // print('No matching student found');
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error marking student: $error')),
       );
-      print('Error marking student: $error');
+      // print('Error marking student: $error');
     }
   }
 
@@ -107,13 +109,13 @@ class _ScannerPageState extends State<ScannerPage> {
 
       // Ensure both ID and Name exist after splitting
       if (parts.length == 2) {
-        String id = parts[0];
-        String name = parts[1];
+        // String id = parts[0];
+        // String name = parts[1];
         isValidBarcode = true;
 
         // Valid barcode, proceed with ID and Name
-        print('ID: $id');
-        print('Name: $name');
+        // print('ID: $id');
+        // print('Name: $name');
       } else {
         // Show an invalid barcode alert if parts are missing
         showAlert(context, 'Invalid Barcode', 'The barcode format is incorrect.');
@@ -210,66 +212,7 @@ class _ScannerPageState extends State<ScannerPage> {
         ],
       ),
 
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       // resizeToAvoidBottomInset: false,
       body: MobileScanner(
         controller: MobileScannerController(
@@ -284,12 +227,12 @@ class _ScannerPageState extends State<ScannerPage> {
           for(final barcode in barcodes) {
             splitBarcodeAndValidate(barcode.rawValue!, context);
             if(isValidBarcode!){
-              print('Barcode found ${barcode.rawValue}');
+              // print('Barcode found ${barcode.rawValue}');
               Map<String, String> result = splitBarcode(barcode.rawValue!);
               scNumber = result['id'];
               name = result['name'];
             }else{
-              print('Barcode not found');
+              // print('Barcode not found');
             }
 
           }
@@ -297,7 +240,7 @@ class _ScannerPageState extends State<ScannerPage> {
           if (image != null && isValidBarcode!){
             showDialog(context: context, builder: (context){
                 return AlertDialog(
-                  title: Text(
+                  title: const Text(
                     "Barcode Found!",
                   ),
                   content: Column(

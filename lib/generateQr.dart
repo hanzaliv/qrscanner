@@ -1,17 +1,21 @@
 import 'dart:ui';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'session_manager.dart';
+import 'menu.dart';
+// import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:flutter/services.dart'; // For ByteData
-import 'package:flutter/rendering.dart';
-import 'dart:ui' as ui;
+//import 'dart:ui' as ui;
+// import 'package:path/path.dart' as path;
+
 
 import '.env';
-import 'session_manager.dart';
 
 
 class GenerateQR extends StatefulWidget {
@@ -22,7 +26,6 @@ class GenerateQR extends StatefulWidget {
 }
 
 class _GenerateQRState extends State<GenerateQR> {
-  final GlobalKey _globalKey = GlobalKey();
   TextEditingController _nameController = TextEditingController();
 
   String? name;
@@ -40,6 +43,37 @@ class _GenerateQRState extends State<GenerateQR> {
     if (name != null) {
       _nameController.text = name!;
     }
+  }
+
+  void showTopSnackBar(BuildContext context, String message, Color color) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50.0, // You can adjust the position
+        left: MediaQuery.of(context).size.width * 0.1,
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: color, // Set the background color based on the input
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Remove the overlay after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
   Future<void> _findStudentByScNumber() async {
@@ -61,24 +95,27 @@ class _GenerateQRState extends State<GenerateQR> {
 
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
+        showTopSnackBar(context, 'Matching Student Found!', Colors.green);
 
         setState(() {
           // Extract 'name' from the response
           name = jsonResponse['name'];
           _nameController.text = jsonResponse['name'];
-          qrData = id! + '~' + name!;
-          qrImageName = id! + '_' + name!;
+          qrData = '${id!}~${name!}';
+          // var newId = id?.replaceAll('/', '_') ?? '';
+          // qrImageName =  newId + '_' + name!;
+          qrImageName = name!;
         });
-      } else {
+      } else if (response.statusCode == 400){
         name = null;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No Matching Student Found')),
-        );
+        showTopSnackBar(context, 'No Matching Student Found!', Colors.red);
+      } else {
+        showTopSnackBar(context, 'Error fetching student: ${response.statusCode}', Colors.red);
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching student: $error')),
-      );
+
+      showTopSnackBar(context, 'Error fetching student: $error' , Colors.red);
+
     }
   }
 
@@ -108,7 +145,7 @@ class _GenerateQRState extends State<GenerateQR> {
       }
       return null;
     } catch (e) {
-      print("Error generating QR Code: $e");
+      // print("Error generating QR Code: $e");
       return null;
     }
   }
@@ -130,7 +167,8 @@ class _GenerateQRState extends State<GenerateQR> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
-                  await _saveQrImage(qrImageBytes, imageName);
+                  await Permission.storage.request();
+                  await _saveQrImage(qrImageBytes, imageName, context);
                 },
                 child: const Text('Save to Gallery'),
               ),
@@ -141,29 +179,28 @@ class _GenerateQRState extends State<GenerateQR> {
     );
   }
 
-  Future<void> _saveQrImage(Uint8List imageBytes, String imageName) async {
+  Future<void> _saveQrImage(Uint8List imageBytes, String imageName, BuildContext context) async {
     try {
-      final result = await ImageGallerySaver.saveImage(
-          imageBytes,
-        name: imageName+' QR',
-      );
-      if (result['isSuccess'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image saved to gallery')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error saving image')),
-        );
+      // Request storage permissions for Android 10+ or manageExternalStorage for Android 11+
+      var status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        throw Exception('Storage permission not granted');
       }
+
+      // Define the directory and file paths for the Downloads folder
+      const String downloadsDir = '/storage/emulated/0/Download/';
+      final String filePath = '$downloadsDir/$imageName QR.png';
+
+      // Save the image file in the Downloads folder
+      final File file = File(filePath);
+      await file.writeAsBytes(imageBytes);
+
+      // Confirm the image was saved
+      showTopSnackBar(context, 'Image Saved To Downloads', Colors.green);
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving image: $error')),
-      );
+      showTopSnackBar(context, 'Error saving image: $error', Colors.red);
     }
   }
-// Function to display the QR code and Save button in the AlertDialog
-
   void showQRCodeDialog(BuildContext context, Uint8List qrImageBytes) {
     showDialog(
       context: context,
@@ -220,66 +257,7 @@ class _GenerateQRState extends State<GenerateQR> {
           ),
         ],
       ),
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      )
+      drawer: const Menu()
       ,
       body: Stack(
         children: [
@@ -334,8 +312,8 @@ class _GenerateQRState extends State<GenerateQR> {
                           child: TextField(
                             decoration: InputDecoration(
                               hintText: 'SC/20xx/xxxxx', // Placeholder text
-                              hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+                              hintStyle: const TextStyle(color: Colors.grey), // Optional: style for placeholder
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
                               border: InputBorder.none,
                               errorText: _isValidID ? null : 'Invalid ID format', // Show error if the ID is invalid
                             ),
@@ -470,29 +448,29 @@ class _GenerateQRState extends State<GenerateQR> {
                       ),
                     ),
                     // Show Button
-                    SizedBox(
-                      width: 140,
-                      height: 40,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF88C98A), // Button background color
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15), // Border radius of 15
-                          ),
-                        ),
-                        onPressed: () {
-                          // Handle the 'Show' button press
-                        },
-                        child: const Text(
-                            'Show',
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 17,
-                              color: Colors.black
-                            )),
-                      ),
-                    ),
+                    // SizedBox(
+                    //   width: 140,
+                    //   height: 40,
+                    //   child: ElevatedButton(
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: const Color(0xFF88C98A), // Button background color
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(15), // Border radius of 15
+                    //       ),
+                    //     ),
+                    //     onPressed: () {
+                    //       // Handle the 'Show' button press
+                    //     },
+                    //     child: const Text(
+                    //         'Show',
+                    //         style: TextStyle(
+                    //           fontFamily: 'Roboto',
+                    //           fontWeight: FontWeight.w500,
+                    //           fontSize: 17,
+                    //           color: Colors.black
+                    //         )),
+                    //   ),
+                    // ),
                   ],
                 ),
               )

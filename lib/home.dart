@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-import 'markAttendance.dart';
+import 'Mark Attendance/markAttendance.dart';
 import 'generateQr.dart';
 import 'Recorded Attendance/recordedAttendance.dart';
 import 'Data Entry/course.dart';
@@ -8,10 +9,14 @@ import 'Data Entry/lecturer.dart';
 import 'Data Entry/assistance.dart';
 import 'Data Entry/student.dart';
 import 'Data Entry/group.dart';
+import 'menu.dart';
+
 
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final String userRole;
+
+  const Home({super.key, required this.userRole});
 
   @override
   State<Home> createState() => _HomeState();
@@ -19,7 +24,25 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
-  void _showPopupMenu(BuildContext context) {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _requestStoragePermission();
+  }
+
+  Future<void> _requestStoragePermission() async {
+    var status = await Permission.manageExternalStorage.request();
+    // var status = await Permission.storage.request();
+    if (!status.isGranted) {
+      // Handle the case when the permission is not granted
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Storage permission is required to proceed')),
+      );
+    }
+  }
+
+  void _showPopupMenuLecturer(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -80,6 +103,43 @@ class _HomeState extends State<Home> {
     );
   }
 
+  void _showPopupMenuAssistant(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text('Select an Option'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.school),
+                title: const Text('Student'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Student())));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.grade),
+                title: const Text('Student Group'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(context, (MaterialPageRoute(builder: (context) => const Group())));
+
+                },
+              ),
+
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -115,66 +175,7 @@ class _HomeState extends State<Home> {
         ],
       ),
 
-      drawer:Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      )
+      drawer:const Menu()
       ,
       body: Stack(
         children: [
@@ -286,7 +287,7 @@ class _HomeState extends State<Home> {
                           topLeft: Radius.circular(15),
                           bottomRight: Radius.circular(15),
                         ),
-                        onTap: () {
+                        onTap: widget.userRole.toLowerCase() == 'student' ? null : () {
                           Navigator.push(context, (MaterialPageRoute(builder: (context) => const MarkAttendance())));
                         },
                         child: Padding(
@@ -348,7 +349,7 @@ class _HomeState extends State<Home> {
                           topLeft: Radius.circular(15),
                           bottomRight: Radius.circular(15),
                         ),
-                        onTap: () {
+                        onTap: widget.userRole.toLowerCase() == 'student' ? null : () {
                           Navigator.push(context, (MaterialPageRoute(builder: (context) => const RecordedAttendance())));
                         },
                         child: Padding(
@@ -403,8 +404,8 @@ class _HomeState extends State<Home> {
                           topRight: Radius.circular(15),
                           bottomLeft: Radius.circular(15),
                         ),
-                        onTap: (){
-                          _showPopupMenu(context);
+                        onTap: widget.userRole.toLowerCase() == 'student' ? null : (){
+                          widget.userRole.toLowerCase() == 'lecturer' ? _showPopupMenuLecturer(context) : _showPopupMenuAssistant(context);
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),

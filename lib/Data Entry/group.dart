@@ -7,6 +7,8 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'groupModify.dart'
 ;import '../session_manager.dart';
 import '../.env';
+import '../menu.dart';
+
 
 class Group extends StatefulWidget {
   const Group({super.key});
@@ -102,7 +104,7 @@ class _GroupState extends State<Group> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to load groups')),
         );
-        print('Failed to load groups: ${response.body}');
+        // print('Failed to load groups: ${response.body}');
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +115,7 @@ class _GroupState extends State<Group> {
 
   Future<void> addGroup(String name) async {
     try {
-      print('Adding Group with name: $name');
+      // print('Adding Group with name: $name');
 
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -135,13 +137,13 @@ class _GroupState extends State<Group> {
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
         id = jsonResponse['group_id'].toString();
-        print('Group added successfully with ID: $id');
+        // print('Group added successfully with ID: $id');
         // Save the Group ID as needed
       } else {
-        print('Failed to add Group: ${response.body}');
+        // print('Failed to add Group: ${response.body}');
       }
     } catch (error) {
-      print('Error adding Group: $error');
+      // print('Error adding Group: $error');
     }
   }
 
@@ -215,66 +217,7 @@ class _GroupState extends State<Group> {
       ),
       resizeToAvoidBottomInset: false,
 
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           Positioned(

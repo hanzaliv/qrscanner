@@ -7,6 +7,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'assistanceModify.dart';
 import '../session_manager.dart';
 import '../.env';
+import '../menu.dart';
 
 
 class Assistance extends StatefulWidget {
@@ -108,11 +109,6 @@ class _AssistanceState extends State<Assistance> {
 
   Future<void> addAssistant(String username, String password, String name, String email, String phone) async {
   try {
-    print('Adding assistant with username: $username');
-    print('Adding assistant with password: $password');
-    print('Adding assistant with name: $name');
-    print('Adding assistant with email: $email');
-    print('Adding assistant with phone: $phone');
 
     final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -138,13 +134,13 @@ class _AssistanceState extends State<Assistance> {
     if (response.statusCode == 201) {
       var jsonResponse = json.decode(response.body);
       id = jsonResponse['id'].toString();
-      print('Assistant added successfully with ID: $id');
+      // print('Assistant added successfully with ID: $id');
       // Save the assistant ID as needed
     } else {
-      print('Failed to add assistant: ${response.body}');
+      // print('Failed to add assistant: ${response.body}');
     }
   } catch (error) {
-    print('Error adding assistant: $error');
+    // print('Error adding assistant: $error');
   }
 }
 
@@ -234,66 +230,7 @@ class _AssistanceState extends State<Assistance> {
       ),
       resizeToAvoidBottomInset: false,
 
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           Positioned(

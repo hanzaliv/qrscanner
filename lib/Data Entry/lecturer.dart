@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:dropdown_search/dropdown_search.dart';
 import 'lecturerModify.dart';
 import '../session_manager.dart';
+import '../menu.dart';
 import '../.env';
 
 
@@ -45,11 +46,11 @@ class _LecturerState extends State<Lecturer> {
 
   Future<void> addLecturer(String username, String password, String name, String email, String phone) async {
     try {
-      print('Adding lecturer with username: $username');
-      print('Adding lecturer with password: $password');
-      print('Adding lecturer with name: $name');
-      print('Adding lecturer with email: $email');
-      print('Adding lecturer with phone: $phone');
+      // print('Adding lecturer with username: $username');
+      // print('Adding lecturer with password: $password');
+      // print('Adding lecturer with name: $name');
+      // print('Adding lecturer with email: $email');
+      // print('Adding lecturer with phone: $phone');
 
       final sessionManager = SessionManager(); // Retrieve the singleton instance
 
@@ -75,13 +76,13 @@ class _LecturerState extends State<Lecturer> {
       if (response.statusCode == 201) {
         var jsonResponse = json.decode(response.body);
         id = jsonResponse['id'].toString();
-        print('Lecturer added successfully with ID: $id');
+        // print('Lecturer added successfully with ID: $id');
         // Save the lecturer ID as needed
       } else {
-        print('Failed to add lecturer: ${response.body}');
+        // print('Failed to add lecturer: ${response.body}');
       }
     } catch (error) {
-      print('Error adding lecturer: $error');
+      // print('Error adding lecturer: $error');
     }
   }
 
@@ -227,66 +228,7 @@ class _LecturerState extends State<Lecturer> {
       ),
       resizeToAvoidBottomInset: false,
 
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           Positioned(
@@ -612,7 +554,7 @@ class _LecturerState extends State<Lecturer> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       username = value;
                                     });
@@ -653,7 +595,7 @@ class _LecturerState extends State<Lecturer> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       name = value;
                                     });
@@ -703,6 +645,11 @@ class _LecturerState extends State<Lecturer> {
                                       }
                                     });
                                   },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      email = value;
+                                    });
+                                  },
                                 ),
                               ),
                             ),
@@ -746,6 +693,11 @@ class _LecturerState extends State<Lecturer> {
                                         _showAlertDialog(context, 'Phone number must be 9 or 10 digits');
                                         phone = null;
                                       }
+                                    });
+                                  },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      phone = value;
                                     });
                                   },
                                 ),
@@ -797,7 +749,7 @@ class _LecturerState extends State<Lecturer> {
                                       },
                                     ),
                                   ),
-                                  onSubmitted: (value) {
+                                  onChanged: (value) {
                                     setState(() {
                                       password = value;
                                     });
@@ -858,6 +810,11 @@ class _LecturerState extends State<Lecturer> {
                                         _showAlertDialog(context, 'Passwords do not match');
                                         confirmPassword = null;
                                       }
+                                    });
+                                  },
+                                  onChanged: (value) {
+                                    setState(() {
+                                      confirmPassword = value;
                                     });
                                   },
                                 ),

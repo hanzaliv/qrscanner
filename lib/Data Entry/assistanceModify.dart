@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import '../session_manager.dart';
 import '../.env';
+import '../menu.dart';
+
 
 class ModifyAssistance extends StatefulWidget {
   final String selectedId;
@@ -56,12 +58,12 @@ class _ModifyAssistanceState extends State<ModifyAssistance> {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 201) {
-        print('Assistant deleted successfully by ID');
+        // print('Assistant deleted successfully by ID');
       } else {
-        print('Failed to delete Assistant by ID: ${response.body}');
+        // print('Failed to delete Assistant by ID: ${response.body}');
       }
     } catch (error) {
-      print('Error deleting Assistant by ID: $error');
+      // print('Error deleting Assistant by ID: $error');
     }
   }
 
@@ -123,12 +125,12 @@ class _ModifyAssistanceState extends State<ModifyAssistance> {
     final response = await http.put(url, headers: headers, body: body);
 
     if (response.statusCode == 200) {
-      print('Assistant updated successfully');
+      // print('Assistant updated successfully');
     } else {
-      print('Failed to update Assistant: ${response.body}');
+      // print('Failed to update Assistant: ${response.body}');
     }
   } catch (error) {
-    print('Error updating Assistant: $error');
+    // print('Error updating Assistant: $error');
   }
 }
 
@@ -200,66 +202,7 @@ class _ModifyAssistanceState extends State<ModifyAssistance> {
         ],
       ),
       resizeToAvoidBottomInset: false,
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           SingleChildScrollView(

@@ -5,6 +5,8 @@ import 'package:dropdown_search/dropdown_search.dart';
 
 import '../session_manager.dart';
 import '../.env';
+import '../menu.dart';
+
 class ModifyGroup extends StatefulWidget {
 
   final String selectedId;
@@ -196,12 +198,12 @@ class _ModifyGroupState extends State<ModifyGroup> {
         };
       }).toList();
       // Handle the response data as needed
-      print('Students in group: $jsonResponse');
+      // print('Students in group: $jsonResponse');
     } else {
-      print('Failed to get students by group: ${response.body}');
+      // print('Failed to get students by group: ${response.body}');
     }
   } catch (error) {
-    print('Error getting students by group: $error');
+    // print('Error getting students by group: $error');
   }
 }
 
@@ -218,12 +220,12 @@ class _ModifyGroupState extends State<ModifyGroup> {
     final response = await http.post(url, headers: headers, body: body);
 
     if (response.statusCode == 200) {
-      print('Student group deleted successfully');
+      // print('Student group deleted successfully');
     } else {
-      print('Failed to delete student group: ${response.body}');
+      // print('Failed to delete student group: ${response.body}');
     }
   } catch (error) {
-    print('Error deleting student group: $error');
+    // print('Error deleting student group: $error');
   }
 }
 
@@ -243,12 +245,12 @@ class _ModifyGroupState extends State<ModifyGroup> {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        print('Student removed from group successfully');
+        // print('Student removed from group successfully');
       } else {
-        print('Failed to remove student from group: ${response.body}');
+        // print('Failed to remove student from group: ${response.body}');
       }
     } catch (error) {
-      print('Error removing student from group: $error');
+      // print('Error removing student from group: $error');
     }
   }
 
@@ -319,66 +321,7 @@ class _ModifyGroupState extends State<ModifyGroup> {
         ],
       ),
       resizeToAvoidBottomInset: false,
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -692,7 +635,7 @@ class _ModifyGroupState extends State<ModifyGroup> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -768,8 +711,8 @@ class _ModifyGroupState extends State<ModifyGroup> {
                                     if (studentMap.containsKey(value)) {
                                       setState(() {
                                         studentNameController.text = studentMap[value]!['name']!;
-                                        print(studentNameController.text);
-                                        print(studentMap[value]!['name']);
+                                        // print(studentNameController.text);
+                                        // print(studentMap[value]!['name']);
                                         selectedStudentId = studentMap[value]!['id']!;
                                       });
                                     } else {

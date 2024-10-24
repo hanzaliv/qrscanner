@@ -17,6 +17,39 @@ class _LoginState extends State<Login> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  String? role;
+
+  void showTopSnackBar(BuildContext context, String message, Color color) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50.0, // You can adjust the position
+        left: MediaQuery.of(context).size.width * 0.1,
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: color, // Set the background color based on the input
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Remove the overlay after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
+  }
+
   // Function to handle login
   Future<void> _login() async {
     String username = _usernameController.text;
@@ -37,10 +70,9 @@ class _LoginState extends State<Login> {
       );
 
       if (response.statusCode == 200) {
-        print('Login successful');
         var data = jsonDecode(response.body);
         String message = data['message'];
-        String role = data['role'];
+        role = data['role'];
 
         // Extract cookies from the response headers
         String? sessionCookie = response.headers['set-cookie']?.split(';')[0];
@@ -48,13 +80,11 @@ class _LoginState extends State<Login> {
 
         if (sessionCookie != null && csrfCookie != null) {
           // Save session and role using the SessionManager singleton
-          SessionManager().saveSession(sessionCookie, csrfCookie, role, username);
+          SessionManager().saveSession(sessionCookie, csrfCookie, role!, username);
           loginSuccess = true;
 
           // Show a success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login successful: $message')),
-          );
+          showTopSnackBar(context, 'Login successful', Colors.green);
         }
       } else {
         print('Login failed with status code ${response.statusCode}');
@@ -75,7 +105,7 @@ class _LoginState extends State<Login> {
       // Navigate to the Home page if login is successful
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const Home()),
+        MaterialPageRoute(builder: (context) => Home(userRole: role!,)),
       );
     }
   }

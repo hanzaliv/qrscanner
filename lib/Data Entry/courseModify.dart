@@ -1,16 +1,162 @@
 import 'package:flutter/material.dart';
+// import 'package:dropdown_search/dropdown_search.dart';
+import 'dart:convert';  // For decoding JSON
+import 'package:http/http.dart' as http;
+// import 'package:intl/intl.dart';
 
-import 'package:dropdown_search/dropdown_search.dart';
+// import 'courseModify.dart';
+import '../session_manager.dart';
+import '../.env';
+import '../menu.dart';
+
 
 
 class ModifyCourses extends StatefulWidget {
-  const ModifyCourses({super.key});
+  final String courseID;
+
+  const ModifyCourses({super.key, required this.courseID});
 
   @override
   State<ModifyCourses> createState() => _ModifyCoursesState();
 }
 
 class _ModifyCoursesState extends State<ModifyCourses> {
+  String? id;
+  String? name;
+  String? number;
+
+
+  TextEditingController idController = TextEditingController();
+  TextEditingController nameController = TextEditingController();
+  TextEditingController numberController = TextEditingController();
+  TextEditingController frontNameController = TextEditingController();
+  TextEditingController frontNumberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    id = widget.courseID;
+    idController.text = id!;
+
+    findCourseById(widget.courseID);
+  }
+
+  Future<void> deleteCourse(String courseId) async {
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+    final url = Uri.parse('$SERVER/delete-course/$id');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+    };
+
+    try {
+      final response = await http.delete(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        // print('Course deleted successfully');
+      } else {
+        // print('Failed to delete course: ${response.body}');
+      }
+    } catch (error) {
+      // print('Error deleting course: $error');
+    }
+  }
+
+  Future<void> findCourseById(String courseId) async {
+
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+    final url = Uri.parse('$SERVER/get-course/$id');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+    };
+
+    try {
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        setState(() {
+          // Update your state with the course details
+          name = jsonResponse['course_unit_name'];
+          number = jsonResponse['course_unit_number'];
+          nameController.text = name!;
+          numberController.text = number!;
+          frontNumberController.text = number!;
+          frontNameController.text = name!;
+
+          // print('Course fetched successfully');
+          // print('Course Name: $name');
+          // print('Course Number: $number');
+
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch course: ${response.body}')),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching course: $error')),
+      );
+    }
+  }
+
+  Future<void> updateCourseById(String id, String name, String number) async {
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+    final url = Uri.parse('$SERVER/update-course/$id');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+    };
+    final body = jsonEncode({'course_unit_name': name, 'course_unit_number': number});
+
+    try {
+      final response = await http.put(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        // print('Course updated successfully');
+      } else {
+        // print('Failed to update course: ${response.body}');
+      }
+    } catch (error) {
+      // print('Error updating course: $error');
+    }
+  }
+
+
+  void showTopSnackBar(BuildContext context, String message, Color color) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50.0, // You can adjust the position
+        left: MediaQuery.of(context).size.width * 0.1,
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: color, // Set the background color based on the input
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Remove the overlay after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,84 +191,9 @@ class _ModifyCoursesState extends State<ModifyCourses> {
         ],
       ),
       resizeToAvoidBottomInset: false,
-
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.3,
-              decoration: const BoxDecoration(
-                color: Color(0xFFC7FFC9),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-            ),
-          ),
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -161,7 +232,6 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-
                       children: [
                         const SizedBox(height: 10),
                         const Row(
@@ -198,7 +268,7 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Course Unit Number: ',
+                                'Course ID: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -210,25 +280,18 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             Expanded(
                               flex: 5,
                               child: Container(
-                                // width: 100,
                                 height: 40,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE1FCE2),
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                                 child: TextField(
-                                  // controller: courseNumberController,
+                                  enabled: false, // Non-editable
+                                  controller: TextEditingController(text: id),
                                   decoration: const InputDecoration(
-                                    // hintText: '',
-                                    hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
-                                    setState(() {
-                                      // courseNumber = value;
-                                    });
-                                  },
                                 ),
                               ),
                             ),
@@ -240,7 +303,7 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Course Unit Name: ',
+                                'Course Name: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -252,25 +315,18 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             Expanded(
                               flex: 5,
                               child: Container(
-                                // width: 100,
                                 height: 40,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE1FCE2),
                                   borderRadius: BorderRadius.circular(25),
                                 ),
                                 child: TextField(
-                                  // controller: courseNameController,
+                                  enabled: false, // Non-editable
+                                  controller: frontNameController,
                                   decoration: const InputDecoration(
-                                    // hintText: '',
-                                    hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
                                     border: InputBorder.none,
                                   ),
-                                  onSubmitted: (value) {
-                                    setState(() {
-                                      // courseName = value;
-                                    });
-                                  },
                                 ),
                               ),
                             ),
@@ -282,7 +338,7 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             const Expanded(
                               flex: 5,
                               child: Text(
-                                'Lecturer: ',
+                                'Course Unit Number ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: 'Roboto',
@@ -293,103 +349,25 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             ),
                             Expanded(
                               flex: 5,
-                              child: DropdownSearch<String>(
-                                // key: dropDownKeyLecturer,
-                                items: (filter, infiniteScrollProps) =>
-                                ["PHY2222", "PHY12222", "PHY1234", "CSC1232","CHE2163"],
-                                onChanged: (value) {
-                                  setState(() {
-                                    // lecturer = value; // Update selected course unit
-                                  });
-                                },
-                                // selectedItem: lecturer,
-                                popupProps: PopupProps.menu(
-                                  showSearchBox: true,
-                                  fit: FlexFit.loose,
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                                    maxWidth: 308,
-                                  ),
-
-                                  containerBuilder: (context, popupWidget) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE1FCE2), // Set the same background color
-                                        borderRadius: BorderRadius.circular(0), // Set the same border radius
-                                      ),
-                                      width: 308, // Set the width of the popup
-                                      child: popupWidget, // Return the actual popup content inside the styled container
-                                    );
-                                  },
-                                  searchFieldProps: TextFieldProps(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search', // Set the placeholder text
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border for search box
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey, // Border color for the search box
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                                    ),
+                              child: Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE1FCE2),
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: TextField(
+                                  enabled: false, // Non-editable
+                                  controller: frontNumberController,
+                                  decoration: const InputDecoration(
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+                                    border: InputBorder.none,
                                   ),
                                 ),
-
-                                decoratorProps: DropDownDecoratorProps(
-                                  decoration  : InputDecoration(
-                                    filled: true,
-                                    fillColor: const Color(0xFFE1FCE2), // Set background color
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Rounded border
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent, // No border color
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25),
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    // Set the label text and border behavior when label is focused
-                                  ),
-                                ),
-
-                                dropdownBuilder: (context, selectedItem) => Container(
-                                  alignment: Alignment.centerLeft,
-                                  width: 308, // Set width to 308
-                                  height: 35,  // Set height to 35
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text(
-                                    selectedItem ?? "", // Display the selected item or placeholder
-                                    style: const TextStyle(
-                                      fontFamily: 'Roboto',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                      color: Colors.black, // You can customize the text style
-                                    ),
-                                  ),
-                                ),
-
-
                               ),
-
                             ),
                           ],
                         ),
+                        const SizedBox(height: 5),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -408,10 +386,81 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                 ),
 
                                 onPressed: () {
+                                  // Set current values in controllers before showing the dialog
+                                  nameController.text = name!;
+                                  numberController.text = number!;
 
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Modify Assistant'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            TextField(
+                                              controller: nameController,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Assistant Name',
+                                              ),
+                                            ),
+                                            TextField(
+                                              controller: numberController,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Assistant Email',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              nameController.clear();
+                                              numberController.clear();
+                                            },
+                                            child: const Text('Clear'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () async {
+                                              if (nameController.text.isEmpty || numberController.text.isEmpty) {
+                                                showTopSnackBar(context, 'All fields are required.', Colors.red); // Red snackbar for error
+                                              } else {
+                                                showDialog(
+                                                  context: context,
+                                                  barrierDismissible: false,
+                                                  builder: (BuildContext context) {
+                                                    return const AlertDialog(
+                                                      title: Text('Updating'),
+                                                      content: SizedBox(
+                                                          height: 100,
+                                                          child: Center(child: CircularProgressIndicator())),
+                                                    );
+                                                  },
+                                                );
+
+                                                try {
+                                                  await updateCourseById(id!, nameController.text, numberController.text);
+                                                  await findCourseById(widget.courseID);
+                                                  Navigator.pop(context); // Close the progress dialog
+                                                  Navigator.pop(context); // Close the modify Assistant screen
+                                                  showTopSnackBar(context, 'Assistant details updated successfully.', Colors.green); // Green snackbar for success
+                                                } catch (error) {
+                                                  await findCourseById(widget.courseID);
+                                                  Navigator.pop(context); // Close the progress dialog
+                                                  Navigator.pop(context);
+                                                  showTopSnackBar(context, 'Failed to update assistant: $error', Colors.red); // Red snackbar for error
+                                                }
+                                              }
+                                            },
+                                            child: const Text('Save'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
                                 },
                                 child: const Text(
-                                    'Save',
+                                    'Modify',
                                     style: TextStyle(
                                         fontFamily: 'Roboto',
                                         fontWeight: FontWeight.w500,
@@ -425,7 +474,7 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                               height: 40,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF88C98A), // Button background color
+                                  backgroundColor: const Color(0xFFFA8D7E), // Button background color
                                   shape: RoundedRectangleBorder(
                                     side: const BorderSide(color: Colors.white, width: 2),
                                     borderRadius: BorderRadius.circular(15), // Border radius of 15
@@ -434,10 +483,57 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                                 ),
 
                                 onPressed: () {
-
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Confirm Deletion'),
+                                        content: const Text('Are you sure you want to delete this Assistant?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop(); // Close the dialog
+                                            },
+                                            child: const Text('No'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () async {
+                                              Navigator.of(context).pop(); // Close the confirmation dialog
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder: (BuildContext context) {
+                                                  return const AlertDialog(
+                                                    title: Text('Deleting Assistant'),
+                                                    content: Column(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        CircularProgressIndicator(),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                              try {
+                                                await deleteCourse(widget.courseID);
+                                                Navigator.pop(context);
+                                                Navigator.pop(context); // Close the modify Assistant screen
+                                                showTopSnackBar(context, 'Assistant deleted successfully', Colors.green);
+                                                // Close the modify Assistant screen
+                                              } catch (error) {
+                                                Navigator.of(context).pop(); // Close the deleting dialog
+                                                showTopSnackBar(context, "Failed to Delete Assistant", Colors.red);
+                                              }
+                                            },
+                                            child: const Text('Yes'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
                                 },
                                 child: const Text(
-                                    'Clear',
+                                    'Delete',
                                     style: TextStyle(
                                         fontFamily: 'Roboto',
                                         fontWeight: FontWeight.w500,
@@ -448,364 +544,15 @@ class _ModifyCoursesState extends State<ModifyCourses> {
                             ),
 
                           ],
-                        ),
+                        )
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Center(
-                    child: Text(
-                      'OR',
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 20,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFF88C98A),
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(40),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-
-                      children: [
-                        const SizedBox(height: 10),
-                        const Row(
-                          children: [
-                            Expanded(
-                              child: Divider(
-                                thickness: 1,
-                                color: Color(0xFF88C98A),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text(
-                                'Add New',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF88C98A),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Divider(
-                                thickness: 1,
-                                color: Color(0xFF88C98A),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            const Expanded(
-                              flex: 5,
-                              child: Text(
-                                'Course Unit Number: ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 5,
-                              child: Container(
-                                // width: 100,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1FCE2),
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: TextField(
-                                  // controller: courseNumberController,
-                                  decoration: const InputDecoration(
-                                    // hintText: '',
-                                    hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    border: InputBorder.none,
-                                  ),
-                                  onSubmitted: (value) {
-                                    setState(() {
-                                      // courseNumber = value;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            const Expanded(
-                              flex: 5,
-                              child: Text(
-                                'Course Unit Name: ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 5,
-                              child: Container(
-                                // width: 100,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1FCE2),
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: TextField(
-                                  // controller: courseNameController,
-                                  decoration: const InputDecoration(
-                                    // hintText: '',
-                                    hintStyle: TextStyle(color: Colors.grey), // Optional: style for placeholder
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    border: InputBorder.none,
-                                  ),
-                                  onSubmitted: (value) {
-                                    setState(() {
-                                      // courseName = value;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            const Expanded(
-                              flex: 5,
-                              child: Text(
-                                'Lecturer: ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 5,
-                              child: DropdownSearch<String>(
-                                // key: dropDownKeyLecturer,
-                                items: (filter, infiniteScrollProps) =>
-                                ["PHY2222", "PHY12222", "PHY1234", "CSC1232","CHE2163"],
-                                onChanged: (value) {
-                                  setState(() {
-                                    // lecturer = value; // Update selected course unit
-                                  });
-                                },
-                                // selectedItem: lecturer,
-                                popupProps: PopupProps.menu(
-                                  showSearchBox: true,
-                                  fit: FlexFit.loose,
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                                    maxWidth: 308,
-                                  ),
-
-                                  containerBuilder: (context, popupWidget) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE1FCE2), // Set the same background color
-                                        borderRadius: BorderRadius.circular(0), // Set the same border radius
-                                      ),
-                                      width: 308, // Set the width of the popup
-                                      child: popupWidget, // Return the actual popup content inside the styled container
-                                    );
-                                  },
-                                  searchFieldProps: TextFieldProps(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search', // Set the placeholder text
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border for search box
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey, // Border color for the search box
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                        borderSide: const BorderSide(
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                                    ),
-                                  ),
-                                ),
-
-                                decoratorProps: DropDownDecoratorProps(
-                                  decoration  : InputDecoration(
-                                    filled: true,
-                                    fillColor: const Color(0xFFE1FCE2), // Set background color
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Rounded border
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent, // No border color
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(25),
-                                      borderSide: const BorderSide(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    // Set the label text and border behavior when label is focused
-                                  ),
-                                ),
-
-                                dropdownBuilder: (context, selectedItem) => Container(
-                                  alignment: Alignment.centerLeft,
-                                  width: 308, // Set width to 308
-                                  height: 35,  // Set height to 35
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text(
-                                    selectedItem ?? "", // Display the selected item or placeholder
-                                    style: const TextStyle(
-                                      fontFamily: 'Roboto',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                      color: Colors.black, // You can customize the text style
-                                    ),
-                                  ),
-                                ),
-
-
-                              ),
-
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SizedBox(
-                              width: 120,
-                              height: 40,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF88C98A), // Button background color
-                                  shape: RoundedRectangleBorder(
-                                    side: const BorderSide(color: Colors.white, width: 2),
-                                    borderRadius: BorderRadius.circular(15), // Border radius of 15
-                                  ),
-
-                                ),
-
-                                onPressed: () {
-
-                                },
-                                child: const Text(
-                                    'Save',
-                                    style: TextStyle(
-                                        fontFamily: 'Roboto',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 17,
-                                        color: Colors.white
-                                    )),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 120,
-                              height: 40,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF88C98A), // Button background color
-                                  shape: RoundedRectangleBorder(
-                                    side: const BorderSide(color: Colors.white, width: 2),
-                                    borderRadius: BorderRadius.circular(15), // Border radius of 15
-                                  ),
-
-                                ),
-
-                                onPressed: () {
-
-                                },
-                                child: const Text(
-                                    'Clear',
-                                    style: TextStyle(
-                                        fontFamily: 'Roboto',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 17,
-                                        color: Colors.white
-                                    )),
-                              ),
-                            ),
-
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 200,)
                 ],
               ),
             ),
-          )
-
+          ),
         ],
-      ),
-      floatingActionButton: SizedBox(
-        width: 75.0,
-        height: 75.0,
-        child: FloatingActionButton(
-          backgroundColor: Colors.white,
-          shape: const CircleBorder(
-            side: BorderSide(
-              color: Colors.white,
-              width: 2.0,
-            ),
-          ),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: const BottomAppBar(
-        color: Colors.white,
-        shape: CircularNotchedRectangle(),
-        notchMargin: 15.0,
-        height: 100,
       ),
     );
   }

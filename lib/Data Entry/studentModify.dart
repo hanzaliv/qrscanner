@@ -3,6 +3,7 @@ import 'dart:convert';  // For decoding JSON
 import 'package:http/http.dart' as http;
 
 import '../session_manager.dart';
+import '../menu.dart';
 import '../.env';
 
 class ModifyStudent extends StatefulWidget {
@@ -63,12 +64,12 @@ class _ModifyStudentState extends State<ModifyStudent> {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 201) {
-        print('student deleted successfully by ID');
+        // print('student deleted successfully by ID');
       } else {
-        print('Failed to delete student by ID: ${response.body}');
+        // print('Failed to delete student by ID: ${response.body}');
       }
     } catch (error) {
-      print('Error deleting student by ID: $error');
+      // print('Error deleting student by ID: $error');
     }
   }
 
@@ -90,12 +91,12 @@ class _ModifyStudentState extends State<ModifyStudent> {
       final response = await http.put(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        print('student updated successfully');
+        // print('student updated successfully');
       } else {
-        print('Failed to update student: ${response.body}');
+        // print('Failed to update student: ${response.body}');
       }
     } catch (error) {
-      print('Error updating student: $error');
+      // print('Error updating student: $error');
     }
   }
 
@@ -124,8 +125,11 @@ class _ModifyStudentState extends State<ModifyStudent> {
           name = jsonResponse['name'];
           email = jsonResponse['email'];
           phoneNumber = jsonResponse['phone'];
-          if(jsonResponse['sc_number'] == null) regNo = "null";
-          else regNo = jsonResponse['sc_number'];
+          if(jsonResponse['sc_number'] == null) {
+            regNo = "null";
+          } else {
+            regNo = jsonResponse['sc_number'];
+          }
           nameController.text = name!;
           emailController.text = email!;
           phoneNumberController.text = phoneNumber!;
@@ -225,66 +229,7 @@ class _ModifyStudentState extends State<ModifyStudent> {
         ],
       ),
       resizeToAvoidBottomInset: false,
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF), // Start color (FFFFFF)
-                Color(0xFFC7FFC9), // End color (C7FFC9)
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
+      drawer: const Menu(),
       body: Stack(
         children: [
           SingleChildScrollView(

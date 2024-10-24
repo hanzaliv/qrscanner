@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:excel/excel.dart';
+// import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
-import 'Lecture.dart';
 import '../.env';
 import '../session_manager.dart';
+import '../menu.dart';
+
 
 class DetailedAttendancePage extends StatefulWidget {
   final String lecId;
+  final String groupId;
 
-  const DetailedAttendancePage({super.key, required this.lecId});
+  const DetailedAttendancePage({super.key, required this.lecId, required this.groupId});
 
   @override
   State<DetailedAttendancePage> createState() => _DetailedAttendancePageState();
@@ -17,15 +23,57 @@ class DetailedAttendancePage extends StatefulWidget {
 
 class _DetailedAttendancePageState extends State<DetailedAttendancePage> {
 
-  List<dynamic> attendanceDetails = [];
+  List<Map<String, dynamic>> attendanceDetails = [];
+  List<Map<String, String>> studentsInGroup = [];
+  List<Map<String, dynamic>> allStudentsWithAttendance = [];
   bool isLoading = false;
   String? errorMessage;
+  String? lecId;
 
   @override
-  void initState() {
+  void initState(){
     super.initState();
-    getLectureAttendance(int.parse(widget.lecId));
+    lecId = widget.lecId;
+    initFunc();
   }
+
+
+  Future<void> initFunc() async{
+    await getStudentsByGroup(widget.groupId);
+    await getLectureAttendance(int.parse(widget.lecId));
+  }
+
+  void showTopSnackBar(BuildContext context, String message, Color color) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50.0, // You can adjust the position
+        left: MediaQuery.of(context).size.width * 0.1,
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: color, // Set the background color based on the input
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Remove the overlay after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
+  }
+
 
   Future<void> getLectureAttendance(int lecId) async {
     setState(() {
@@ -54,7 +102,15 @@ class _DetailedAttendancePageState extends State<DetailedAttendancePage> {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
 
         setState(() {
-          attendanceDetails = responseData['attendanceDetails'];
+          attendanceDetails = List<Map<String, dynamic>>.from(responseData['attendanceDetails']);
+          allStudentsWithAttendance = studentsInGroup.map((student) {
+            bool isPresent = attendanceDetails.any((attendance) => attendance['sc_number'] == student['sc_number']);
+            return {
+              'sc_number': student['sc_number'],
+              'name': student['name'],
+              'isPresent': isPresent,
+            };
+          }).toList();
         });
       } else {
         setState(() {
@@ -65,6 +121,7 @@ class _DetailedAttendancePageState extends State<DetailedAttendancePage> {
       setState(() {
         errorMessage = "Error fetching attendance: $error";
       });
+      // print(errorMessage);
     } finally {
       setState(() {
         isLoading = false;
@@ -72,6 +129,79 @@ class _DetailedAttendancePageState extends State<DetailedAttendancePage> {
     }
   }
 
+  Future<void> getStudentsByGroup(String groupId) async {
+    final sessionManager = SessionManager(); // Retrieve the singleton instance
+    final url = Uri.parse('$SERVER/get-students-by-group');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+    };
+    final body = jsonEncode({'group_id': groupId});
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        List<dynamic> jsonResponse = json.decode(response.body);
+
+        studentsInGroup = jsonResponse.map((student) {
+          return {
+            'sc_number': student['sc_number'].toString(),
+            'id': student['id'].toString(),
+            'name': student['name'].toString(),
+          };
+        }).toList();
+        // Handle the response data as needed
+        // print('Students in group: $jsonResponse');
+      } else {
+        // print('Failed to get students by group: ${response.body}');
+      }
+    } catch (error) {
+      // print('Error getting students by group: $error');
+    }
+  }
+
+  Future<void> exportAttendanceToExcel(BuildContext context) async {
+    try {
+      // Request storage permission
+      var status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        // If permission is denied, show an error message
+        showTopSnackBar(context, 'Storage permission denied', Colors.red);
+        return;
+      }
+
+      // Create a new Excel document
+      var excel = Excel.createExcel();
+      Sheet sheetObject = excel['Attendance'];
+
+      // Add header row
+      sheetObject.appendRow(['Student Number', 'Name', 'Attendance']);
+
+      // Add data rows
+      for (var student in allStudentsWithAttendance) {
+        sheetObject.appendRow([
+          student['sc_number'],
+          student['name'],
+          student['isPresent'] ? '1' : '0'
+        ]);
+      }
+
+      // Define the Downloads folder path
+      const String downloadsDir = '/storage/emulated/0/Download';
+      final String filePath = '$downloadsDir/attendance_lec_$lecId.xlsx';
+
+      // Save the Excel file in the Downloads folder
+      final File file = File(filePath);
+      await file.writeAsBytes(excel.encode()!);
+
+      // Show a success message to the user
+      showTopSnackBar(context, 'Attendance exported to Downloads', Colors.green);
+    } catch (error) {
+      // Handle any errors that occur during the export process
+      showTopSnackBar(context, 'Failed to export attendance: $error', Colors.red);
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,89 +236,48 @@ class _DetailedAttendancePageState extends State<DetailedAttendancePage> {
           ),
         ],
       ),
-      drawer: Drawer(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFFFFFFFF),
-                Color(0xFFC7FFC9),
-              ],
-              stops: [0.0, 0.82], // Stops as per your gradient
-            ),
-          ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 100),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 10),
-                    Text('Profile'),
-                  ],
+      drawer: const Menu(),
+      body: Column(
+        children: [
+          if (isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (errorMessage != null)
+            Center(child: Text(errorMessage!))
+          else if (attendanceDetails.isEmpty)
+              const Center(child: Text("No attendance data available"))
+            else ...[
+                TextButton(
+                  onPressed: () {
+                    exportAttendanceToExcel(context);
+                  },
+                  child: const Text('Export'),
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 10),
-                    Text('Settings'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-            ],
-          ),
-        ),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : errorMessage != null
-          ? Center(child: Text(errorMessage!))
-          : attendanceDetails.isEmpty
-          ? Center(child: Text("No attendance data available"))
-          : ListView.builder(
-        itemCount: attendanceDetails.length,
-        itemBuilder: (context, index) {
-          final attendance = attendanceDetails[index];
-          final studentName = attendance['student_name'];
-          final scNumber = attendance['sc_number'];
-          final attendTime = attendance['attend_time'] ?? 'N/A';
-          final studentGroupId = attendance['student_group_id'];
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: allStudentsWithAttendance.length,
+                    itemBuilder: (context, index) {
+                      final student = allStudentsWithAttendance[index];
+                      final studentName = student['name'];
+                      final scNumber = student['sc_number'];
+                      final isPresent = student['isPresent'];
 
-          return ListTile(
-            title: Text('Student: $studentName ($scNumber)'),
-            subtitle: Text('Group ID: $studentGroupId | Attend Time: $attendTime'),
-            trailing: Icon(Icons.check_circle, color: Colors.green)
-          );
-        },
+                      return ListTile(
+                        title: Text('Student: $studentName ($scNumber)'),
+                        subtitle: Text(isPresent ? 'Present' : 'Absent'),
+                        trailing: Icon(
+                          isPresent ? Icons.check_circle : Icons.cancel,
+                          color: isPresent ? Colors.green : Colors.red,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+        ],
       ),
-       floatingActionButton: SizedBox(
+
+
+      floatingActionButton: SizedBox(
         width: 75.0,
         height: 75.0,
         child: FloatingActionButton(
