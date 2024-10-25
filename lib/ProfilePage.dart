@@ -51,7 +51,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Prepare the request body
       var body = jsonEncode({'id': UserSession().userId});
-      print("user Id: ${UserSession().userId}");
+      // print("user Id: ${UserSession().userId}");
 
       final response = await http.post(
         Uri.parse('$SERVER/single-user'),
@@ -63,8 +63,7 @@ class _ProfilePageState extends State<ProfilePage> {
         body: body, // Send the sc_number in the request body
       );
       
-      print("satus code " + response.statusCode.toString());
-      print(response.toString());
+      // print(response.toString());
 
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
@@ -89,13 +88,13 @@ class _ProfilePageState extends State<ProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No Matching User Found')),
         );
-        print('No matching user found');
+        // print('No matching user found');
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching student: $error')),
       );
-      print('Error fetching student: $error');
+      // print('Error fetching student: $error');
     }
   }
 
@@ -293,17 +292,11 @@ class _ProfilePageState extends State<ProfilePage> {
           SizedBox(
             width: 100.0,
             height: 100.0,
-            child: FloatingActionButton(
-                backgroundColor: const Color(0xFFC7FFC9),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFC7FFC9),
                 borderRadius: BorderRadius.circular(50),
-                side: BorderSide.none,
-                ),
-                onPressed: () {
-                // Handle action when the red floating button is pressed
-                },
-              child: Container(), // Empty container to make it a plain red circle
+              ),
             ),
           ),
           SizedBox(
