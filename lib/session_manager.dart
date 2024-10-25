@@ -33,6 +33,19 @@ class SessionManager {
   }
 }
 
+class UserSession {
+  static final UserSession _instance = UserSession._internal();
+
+  String? userRole;
+  String? userId;
+
+  factory UserSession() {
+    return _instance;
+  }
+
+  UserSession._internal();
+}
+
 
 
 // class SessionManager {

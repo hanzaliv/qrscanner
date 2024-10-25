@@ -79,6 +79,8 @@ class _LoginState extends State<Login> {
         // String message = data['message'];
         role = data['role'];
         id = data['user_id'].toString();
+        UserSession().userRole = role;
+        UserSession().userId = id;
 
         // Extract cookies from the response headers
         String? sessionCookie = response.headers['set-cookie']?.split(';')[0];
@@ -113,7 +115,10 @@ class _LoginState extends State<Login> {
       // Navigate to the Home page if login is successful
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => Home(userRole: role!,)),
+        MaterialPageRoute(builder: (context) => Home(
+          userRole: role!,
+          userId: id!,
+        )),
       );
     }
 

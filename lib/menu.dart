@@ -4,6 +4,7 @@ import 'loggin.dart';
 import 'ProfilePage.dart';
 
 class Menu extends StatelessWidget {
+
   const Menu({super.key});
 
   @override
@@ -35,7 +36,7 @@ class Menu extends StatelessWidget {
                 ],
               ),
               onTap: () {
-                Navigator.pop(context);
+                // Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ProfilePage()),
