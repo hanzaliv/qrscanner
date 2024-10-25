@@ -1049,29 +1049,69 @@ class _MarkAttendanceState extends State<MarkAttendance> {
 
         ],
       ),
-      floatingActionButton: SizedBox(
-        width: 75.0,
-        height: 75.0,
-        child: FloatingActionButton(
-          backgroundColor: Colors.white,
-          shape: const CircleBorder(
-            side: BorderSide(
+
+      floatingActionButton: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 100.0,
+            height: 100.0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFC7FFC9),
+                borderRadius: BorderRadius.circular(50),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 75.0,
+            height: 75.0,
+            child: FloatingActionButton(
+              backgroundColor: Colors.white,
+              shape: const CircleBorder(
+                side: BorderSide(
               color: Colors.white,
               width: 2.0,
-            ),
-          ),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Image.asset(
+                ),
+              ),
+              onPressed: () {
+                // Handle action when the floating button is pressed
+                Navigator.of(context).pop();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Image.asset(
               'assets/images/logo.png',
               fit: BoxFit.cover,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
+      // floatingActionButton: SizedBox(
+      //   width: 75.0,
+      //   height: 75.0,
+      //   child: FloatingActionButton(
+      //     backgroundColor: Colors.white,
+      //     shape: const CircleBorder(
+      //       side: BorderSide(
+      //         color: Colors.white,
+      //         width: 2.0,
+      //       ),
+      //     ),
+      //     onPressed: () {
+      //       Navigator.of(context).pop();
+      //     },
+      //     child: Padding(
+      //       padding: const EdgeInsets.all(10.0),
+      //       child: Image.asset(
+      //         'assets/images/logo.png',
+      //         fit: BoxFit.cover,
+      //       ),
+      //     ),
+      //   ),
+      // ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: const BottomAppBar(

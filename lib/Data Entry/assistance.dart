@@ -693,17 +693,11 @@ class _AssistanceState extends State<Assistance> {
           SizedBox(
             width: 100.0,
             height: 100.0,
-            child: FloatingActionButton(
-                backgroundColor: Color(0xFFC7FFC9),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFC7FFC9),
                 borderRadius: BorderRadius.circular(50),
-                side: BorderSide.none,
-                ),
-                onPressed: () {
-                // Handle action when the red floating button is pressed
-                },
-              child: Container(), // Empty container to make it a plain red circle
+              ),
             ),
           ),
           SizedBox(
