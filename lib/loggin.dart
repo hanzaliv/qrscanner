@@ -19,6 +19,7 @@ class _LoginState extends State<Login> {
 
   bool _isPasswordObscured = true;
   String? role;
+  String? id;
 
   void showTopSnackBar(BuildContext context, String message, Color color) {
     OverlayEntry overlayEntry = OverlayEntry(
@@ -77,6 +78,7 @@ class _LoginState extends State<Login> {
         var data = jsonDecode(response.body);
         // String message = data['message'];
         role = data['role'];
+        id = data['user_id'].toString();
 
         // Extract cookies from the response headers
         String? sessionCookie = response.headers['set-cookie']?.split(';')[0];
@@ -138,6 +140,7 @@ class _LoginState extends State<Login> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const SizedBox(height: 50),
                 const Text(
                   'Welcome',
                   style: TextStyle(
@@ -146,7 +149,7 @@ class _LoginState extends State<Login> {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 5),
                 Image.asset(
                   'assets/images/phone.png',
                   height: 200,
