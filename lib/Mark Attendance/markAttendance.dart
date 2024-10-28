@@ -26,8 +26,12 @@ class _MarkAttendanceState extends State<MarkAttendance> {
   final dropDownKeyCourseUnit = GlobalKey<DropdownSearchState>();
   final dropDownKeyLecturer = GlobalKey<DropdownSearchState>();
   final dropDownKeyStudentGroup = GlobalKey<DropdownSearchState>();
+  final dropDownKeyLecture = GlobalKey<DropdownSearchState>();
+
 
   Map<String, String> lecturerMap = {}; // To store the name and ID mapping
+  Map<String,String> ongoingLectures = {};
+  List<String> ongoingLectureNames = [];
   List<String> lecturerNames = []; // To store only the names for the dropdown
   Map<String, String> studentGroupMap = {}; // To store the name and ID mapping
   List<String> studentGroupNames = []; // To store only the names for the dropdown
@@ -43,13 +47,71 @@ class _MarkAttendanceState extends State<MarkAttendance> {
   TimeOfDay? startTime;
   TimeOfDay? endTime;
   bool? isLectureAdded;
+  String? selectedLectureId;
 
   @override
   void initState() {
     super.initState();
-    _fetchCourses(); // Call the function to fetch courses on page load
-    _fetchLecturers(); // Call the function to fetch lecturers on page load
-    _fetchStudentGroups(); // Call the function to fetch student groups on page load
+    _fetchCourses();
+    _fetchLecturers();
+    _fetchStudentGroups();
+    fetchOngoingLectures();
+    // _fetchData(); // Fetch the data when the widget is initialized
+  }
+
+  Future<void> _fetchData() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
+      print('Fetching data...');
+      await _fetchCourses();
+      await _fetchLecturers();
+      await _fetchStudentGroups();
+      await fetchOngoingLectures();
+    } catch (error) {
+      // Handle any errors that occur during the fetch process
+      showTopSnackBar(context, 'Failed to fetch data: $error', Colors.red);
+      print('Error fetching data: $error');
+    } finally {
+      Navigator.of(context).pop(); // Close the loading dialog
+    }
+  }
+
+  void showTopSnackBar(BuildContext context, String message, Color color) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50.0, // You can adjust the position
+        left: MediaQuery.of(context).size.width * 0.1,
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: color, // Set the background color based on the input
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Remove the overlay after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
   DateTime convertTimeOfDayToDateTime(TimeOfDay timeOfDay) {
@@ -115,6 +177,60 @@ class _MarkAttendanceState extends State<MarkAttendance> {
 
   }
 
+  Future<void> fetchOngoingLectures() async {
+    try {
+      final sessionManager = SessionManager(); // Retrieve the singleton instance
+
+      // Get the current system date and time
+      final now = DateTime.now();
+      final today = DateFormat('yyyy-MM-dd').format(now);
+      final nowTime = DateFormat('HH:mm').format(now);
+
+      // Prepare the request body
+      var body = jsonEncode({
+        'nowTime': nowTime.toString(),
+        'today': today.toString(),
+      });
+
+      final response = await http.post(
+        Uri.parse('$SERVER/get-upcoming-and-ongoing-lectures'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json', // Indicate that the body is JSON
+          'Cookie': '${sessionManager.sessionCookie}; ${sessionManager.csrfCookie}',
+        },
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> lectures = json.decode(response.body);
+
+        setState(() {
+          ongoingLectures.clear();
+          ongoingLectureNames.clear();
+
+          for (var lecture in lectures) {
+            final courseId = lecture['course_id'].toString();
+            final lectureId = lecture['id'].toString();
+
+            ongoingLectures[courseId] = lectureId;
+            ongoingLectureNames.add(courseId);
+          }
+        });        // Handle the response as needed
+        // print('Lectures: $jsonResponse');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to fetch lectures')),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching lectures: $error')),
+      );
+      print('Error fetching lectures: $error');
+    }
+
+  }
   // Function to fetch courses from the server
   Future<List<String>> _fetchCourses() async {
     try {
@@ -226,8 +342,6 @@ class _MarkAttendanceState extends State<MarkAttendance> {
       );
     }
   }
-
-
   // Function to pick a date
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -296,7 +410,7 @@ class _MarkAttendanceState extends State<MarkAttendance> {
     } else {
       // Call the _addLecture function and wait for it to complete
       await _addLecture();
-
+      await fetchOngoingLectures();
       // After the lecture is added, check if it was successful
       if (isLectureAdded != null && isLectureAdded == true && lectureId != null) {
         // Navigate to the ScannerPage if the lecture was added successfully
@@ -459,562 +573,147 @@ class _MarkAttendanceState extends State<MarkAttendance> {
             ),
           ),
           SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                  const Center(
-                    child: Text(
-                      'Enter Course Details',
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 20,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                    children: [
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFF88C98A),
-                        width: 2,
+                      const Center(
+                        child: Text(
+                          'Select From Current Lecture',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 20,
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(40),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Course Unit Number:",
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: const Color(0xFF88C98A),
+                            width: 2,
                           ),
+                          borderRadius: BorderRadius.circular(40),
                         ),
-                        const SizedBox(height: 10),
-                        // DropdownSearch<String>(
-                        //   key: dropDownKeyCourseUnit,
-                        //   items: (filter, infiniteScrollProps) =>
-                        //   ["PHY2222", "PHY12222", "PHY1234", "CSC1232","CHE2163"],
-                        //   onChanged: (value) {
-                        //     setState(() {
-                        //       selectedCourseUnit = value; // Update selected course unit
-                        //     });
-                        //   },
-                        //   selectedItem: selectedCourseUnit,
-                        //   popupProps: PopupProps.menu(
-                        //     showSearchBox: true,
-                        //     fit: FlexFit.loose,
-                        //     constraints: BoxConstraints(
-                        //       maxHeight: MediaQuery.of(context).size.height * 0.5,
-                        //       maxWidth: 308,
-                        //     ),
-                        //
-                        //     containerBuilder: (context, popupWidget) {
-                        //       return Container(
-                        //         decoration: BoxDecoration(
-                        //           color: const Color(0xFFE1FCE2), // Set the same background color
-                        //           borderRadius: BorderRadius.circular(0), // Set the same border radius
-                        //         ),
-                        //         width: 308, // Set the width of the popup
-                        //         child: popupWidget, // Return the actual popup content inside the styled container
-                        //       );
-                        //     },
-                        //     searchFieldProps: TextFieldProps(
-                        //       decoration: InputDecoration(
-                        //         hintText: 'Search', // Set the placeholder text
-                        //         border: OutlineInputBorder(
-                        //           borderRadius: BorderRadius.circular(25), // Rounded border for search box
-                        //           borderSide: const BorderSide(
-                        //             color: Colors.grey, // Border color for the search box
-                        //           ),
-                        //         ),
-                        //         focusedBorder: OutlineInputBorder(
-                        //           borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                        //           borderSide: const BorderSide(
-                        //             color: Colors.grey,
-                        //           ),
-                        //         ),
-                        //         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                        //       ),
-                        //     ),
-                        //   ),
-                        //
-                        //   decoratorProps: DropDownDecoratorProps(
-                        //     decoration  : InputDecoration(
-                        //       filled: true,
-                        //       fillColor: const Color(0xFFE1FCE2), // Set background color
-                        //       contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                        //       enabledBorder: OutlineInputBorder(
-                        //         borderRadius: BorderRadius.circular(25), // Rounded border
-                        //         borderSide: const BorderSide(
-                        //           color: Colors.transparent, // No border color
-                        //         ),
-                        //       ),
-                        //       focusedBorder: OutlineInputBorder(
-                        //         borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                        //         borderSide: const BorderSide(
-                        //           color: Colors.transparent,
-                        //         ),
-                        //       ),
-                        //       border: OutlineInputBorder(
-                        //         borderRadius: BorderRadius.circular(25),
-                        //         borderSide: const BorderSide(
-                        //           color: Colors.transparent,
-                        //         ),
-                        //       ),
-                        //       // Set the label text and border behavior when label is focused
-                        //     ),
-                        //   ),
-                        //
-                        //   dropdownBuilder: (context, selectedItem) => Container(
-                        //     alignment: Alignment.centerLeft,
-                        //     width: 308, // Set width to 308
-                        //     height: 35,  // Set height to 35
-                        //     padding: const EdgeInsets.symmetric(horizontal: 10),
-                        //     child: Text(
-                        //       selectedItem ?? "Select an option",
-                        //       style: const TextStyle(
-                        //         fontFamily: 'Roboto',
-                        //         fontWeight: FontWeight.w500,
-                        //         fontSize: 14,
-                        //         color: Colors.black, // You can customize the text style
-                        //       ),
-                        //     ),
-                        //   ),
-                        //
-                        //
-                        // ),
-                        DropdownSearch<String>(
-                          key: dropDownKeyCourseUnit,
-                          // items: (filter, infiniteScrollProps) => _fetchCourses(),
-                          items: (filter, infiniteScrollProps) => courseUnitNumbers, // Use the fetched course units
-                          onChanged: (value) {
-                            setState(() {
-                              selectedCourseUnit = value; // Update selected course unit
-                            });
-                          },
-                          selectedItem: selectedCourseUnit,
-                          popupProps: PopupProps.menu(
-                            showSearchBox: true,
-                            fit: FlexFit.loose,
-                            constraints: BoxConstraints(
-                              maxHeight: MediaQuery.of(context).size.height * 0.5,
-                              maxWidth: 308,
-                            ),
-                            containerBuilder: (context, popupWidget) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1FCE2), // Same background color
-                                  borderRadius: BorderRadius.circular(0), // Same border radius
-                                ),
-                                width: 308, // Set the width of the popup
-                                child: popupWidget, // Return the actual popup content
-                              );
-                            },
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                hintText: 'Search', // Placeholder text
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Rounded border
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey, // Border color
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                              ),
-                            ),
-                          ),
-                          decoratorProps: DropDownDecoratorProps(
-                            decoration  : InputDecoration(
-                              filled: true,
-                              fillColor: const Color(0xFFE1FCE2), // Set background color
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25), // Rounded border
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent, // No border color
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              // Set the label text and border behavior when label is focused
-                            ),
-                          ),
-                          dropdownBuilder: (context, selectedItem) => Container(
-                            alignment: Alignment.centerLeft,
-                            width: 308, // Set width to 308
-                            height: 35,  // Set height to 35
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text(
-                              selectedItem ?? "Select an option",
-                              style: const TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                                color: Colors.black, // You can customize the text style
-                              ),
-                            ),
-                          ),
-
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Lecturer:",
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        DropdownSearch<String>(
-                          key: dropDownKeyLecturer,
-                          items: (filter, infiniteScrollProps) => lecturerNames,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedLecturer = value; // Update selected lecturer
-                              selectedLecturerId = lecturerMap[value!];
-                            });
-                          },
-                          selectedItem: selectedLecturer,
-                          popupProps: PopupProps.menu(
-                            showSearchBox: true,
-                            fit: FlexFit.loose,
-                            constraints: BoxConstraints(
-                              maxHeight: MediaQuery.of(context).size.height * 0.5,
-                              maxWidth: 308,
-                            ),
-
-                            containerBuilder: (context, popupWidget) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1FCE2), // Set the same background color
-                                  borderRadius: BorderRadius.circular(0), // Set the same border radius
-                                ),
-                                width: 308, // Set the width of the popup
-                                child: popupWidget, // Return the actual popup content inside the styled container
-                              );
-                            },
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                hintText: 'Search', // Set the placeholder text
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Rounded border for search box
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey, // Border color for the search box
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                              ),
-                            ),
-                          ),
-
-                          decoratorProps: DropDownDecoratorProps(
-                            decoration  : InputDecoration(
-                              filled: true,
-                              fillColor: const Color(0xFFE1FCE2), // Set background color
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25), // Rounded border
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent, // No border color
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              // Set the label text and border behavior when label is focused
-                            ),
-                          ),
-                          dropdownBuilder: (context, selectedItem) => Container(
-                            alignment: Alignment.centerLeft,
-                            width: 308, // Set width to 308
-                            height: 35,  // Set height to 35
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text(
-                              selectedItem ?? "Select an option",
-                              style: const TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                                color: Colors.black, // You can customize the text style
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Student Group:",
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        DropdownSearch<String>(
-                          key: dropDownKeyStudentGroup,
-                          items: (filter, infiniteScrollProps) => studentGroupNames,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedStudentGroupName = value; // Update selected lecturer
-                              selectedStudentGroupId = studentGroupMap[value!];
-                            });
-                          },
-                          selectedItem: selectedStudentGroupName,
-                          popupProps: PopupProps.menu(
-                            showSearchBox: true,
-                            fit: FlexFit.loose,
-                            constraints: BoxConstraints(
-                              maxHeight: MediaQuery.of(context).size.height * 0.5,
-                              maxWidth: 308,
-                            ),
-
-                            containerBuilder: (context, popupWidget) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1FCE2), // Set the same background color
-                                  borderRadius: BorderRadius.circular(0), // Set the same border radius
-                                ),
-                                width: 308, // Set the width of the popup
-                                child: popupWidget, // Return the actual popup content inside the styled container
-                              );
-                            },
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                hintText: 'Search', // Set the placeholder text
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Rounded border for search box
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey, // Border color for the search box
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Rounded border when focused
-                                  borderSide: const BorderSide(
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
-                              ),
-                            ),
-                          ),
-
-                          decoratorProps: DropDownDecoratorProps(
-                            decoration  : InputDecoration(
-                              filled: true,
-                              fillColor: const Color(0xFFE1FCE2), // Set background color
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25), // Rounded border
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent, // No border color
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25), // Same rounded border when focused
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
-                                borderSide: const BorderSide(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              // Set the label text and border behavior when label is focused
-                            ),
-                          ),
-                          dropdownBuilder: (context, selectedItem) => Container(
-                            alignment: Alignment.centerLeft,
-                            width: 308, // Set width to 308
-                            height: 35,  // Set height to 35
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text(
-                              selectedItem ?? "Select an option",
-                              style: const TextStyle(
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                                color: Colors.black, // You can customize the text style
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Date:",
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: () => _selectDate(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE1FCE2),
-
-                          ),
-                          child: Text(
-                            selectedDate != null
-                                ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
-                                : 'Select Date', // Display selected date or default text
-                            style: const TextStyle(
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Time:",
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "From",
-                                  style: TextStyle(
-                                    fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () => _selectStartTime(context),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE1FCE2),
-                                  ),
-                                  child: Text(
-                                    startTime != null
-                                        ? "${startTime!.hourOfPeriod == 0 ? 12 : startTime!.hourOfPeriod}:${startTime!.minute.toString().padLeft(2, '0')} ${startTime!.period == DayPeriod.am ? 'AM' : 'PM'}"
-                                        : 'Select Time', // Display selected time or default text
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                    ),
-                                  ),
-
-                                ),
-
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "To",
-                                  style: TextStyle(
-                                    fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () => _selectEndTime(context),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE1FCE2),
-                                  ),
-                                  child: Text(
-                                    endTime != null
-                                        ? "${endTime!.hourOfPeriod == 0 ? 12 : endTime!.hourOfPeriod}:${endTime!.minute.toString().padLeft(2, '0')} ${endTime!.period == DayPeriod.am ? 'AM' : 'PM'}"
-                                        : 'Select Time', // Display selected time or default text
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Generate Button
-                            SizedBox(
-                              width: 120,
-                              height: 40,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF88C98A), // Button background color
-                                  shape: RoundedRectangleBorder(
-                                    side: const BorderSide(color: Colors.white, width: 2),
-                                    borderRadius: BorderRadius.circular(15), // Border radius of 15
-                                  ),
-
-                                ),
-
-                                onPressed: _handleLectureSubmission,
-                                child: const Text(
-                                    'Scan',
-                                    style: TextStyle(
-                                        fontFamily: 'Roboto',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 17,
-                                        color: Colors.black
-                                    )),
+                            const Text(
+                              "Select Lecture",
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
                               ),
                             ),
-                            // Show Button
+                            const SizedBox(height: 10),
+                            DropdownSearch<String>(
+                              key: dropDownKeyLecture,
+                              // items: (filter, infiniteScrollProps) => _fetchCourses(),
+                              items: (filter, infiniteScrollProps) => ongoingLectureNames, // Use the fetched course units
+                              onChanged: (value) async{
+                                setState(()  {
+                                  selectedLectureId = ongoingLectures[value!];
+                                });
+
+                              },
+                              selectedItem: selectedCourseUnit,
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                fit: FlexFit.loose,
+                                constraints: BoxConstraints(
+                                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                  maxWidth: 308,
+                                ),
+                                containerBuilder: (context, popupWidget) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE1FCE2), // Same background color
+                                      borderRadius: BorderRadius.circular(0), // Same border radius
+                                    ),
+                                    width: 308, // Set the width of the popup
+                                    child: popupWidget, // Return the actual popup content
+                                  );
+                                },
+                                searchFieldProps: TextFieldProps(
+                                  decoration: InputDecoration(
+                                    hintText: 'Search', // Placeholder text
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey, // Border color
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                                  ),
+                                ),
+                              ),
+                              decoratorProps: DropDownDecoratorProps(
+                                decoration  : InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFE1FCE2), // Set background color
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Rounded border
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent, // No border color
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  // Set the label text and border behavior when label is focused
+                                ),
+                              ),
+                              dropdownBuilder: (context, selectedItem) => Container(
+                                alignment: Alignment.centerLeft,
+                                width: 308, // Set width to 308
+                                height: 35,  // Set height to 35
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  selectedItem ?? "Select an option",
+                                  style: const TextStyle(
+                                    fontFamily: 'Roboto',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    color: Colors.black, // You can customize the text style
+                                  ),
+                                ),
+                              ),
+
+                            ),
+
+                            const SizedBox(height: 20),
                             SizedBox(
                               width: 120,
                               height: 40,
@@ -1025,10 +724,25 @@ class _MarkAttendanceState extends State<MarkAttendance> {
                                     side: const BorderSide(color: Colors.white, width: 2),
                                     borderRadius: BorderRadius.circular(15), // Border radius of 15
                                   ),
+
                                 ),
-                                onPressed: clearSelections,
+
+                                onPressed: (){
+                                  if(selectedLectureId != null){
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ScannerPage(
+                                          lectureId: selectedLectureId!,
+                                        ),
+                                      ),
+                                    );
+                                  }else{
+                                    showTopSnackBar(context, 'Please select a lecture first', Colors.red);
+                                  }
+                                },
                                 child: const Text(
-                                    'Clear',
+                                    'Find',
                                     style: TextStyle(
                                         fontFamily: 'Roboto',
                                         fontWeight: FontWeight.w500,
@@ -1039,11 +753,588 @@ class _MarkAttendanceState extends State<MarkAttendance> {
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  )
-                ],
-              ),
+                      )
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                    children: [
+                      const Center(
+                        child: Text(
+                          'Create New Lecture',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: const Color(0xFF88C98A),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Course Unit Number:",
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            // DropdownSearch<String>(
+                            //   key: dropDownKeyCourseUnit,
+                            //   items: (filter, infiniteScrollProps) =>
+                            //   ["PHY2222", "PHY12222", "PHY1234", "CSC1232","CHE2163"],
+                            //   onChanged: (value) {
+                            //     setState(() {
+                            //       selectedCourseUnit = value; // Update selected course unit
+                            //     });
+                            //   },
+                            //   selectedItem: selectedCourseUnit,
+                            //   popupProps: PopupProps.menu(
+                            //     showSearchBox: true,
+                            //     fit: FlexFit.loose,
+                            //     constraints: BoxConstraints(
+                            //       maxHeight: MediaQuery.of(context).size.height * 0.5,
+                            //       maxWidth: 308,
+                            //     ),
+                            //
+                            //     containerBuilder: (context, popupWidget) {
+                            //       return Container(
+                            //         decoration: BoxDecoration(
+                            //           color: const Color(0xFFE1FCE2), // Set the same background color
+                            //           borderRadius: BorderRadius.circular(0), // Set the same border radius
+                            //         ),
+                            //         width: 308, // Set the width of the popup
+                            //         child: popupWidget, // Return the actual popup content inside the styled container
+                            //       );
+                            //     },
+                            //     searchFieldProps: TextFieldProps(
+                            //       decoration: InputDecoration(
+                            //         hintText: 'Search', // Set the placeholder text
+                            //         border: OutlineInputBorder(
+                            //           borderRadius: BorderRadius.circular(25), // Rounded border for search box
+                            //           borderSide: const BorderSide(
+                            //             color: Colors.grey, // Border color for the search box
+                            //           ),
+                            //         ),
+                            //         focusedBorder: OutlineInputBorder(
+                            //           borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                            //           borderSide: const BorderSide(
+                            //             color: Colors.grey,
+                            //           ),
+                            //         ),
+                            //         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                            //       ),
+                            //     ),
+                            //   ),
+                            //
+                            //   decoratorProps: DropDownDecoratorProps(
+                            //     decoration  : InputDecoration(
+                            //       filled: true,
+                            //       fillColor: const Color(0xFFE1FCE2), // Set background color
+                            //       contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                            //       enabledBorder: OutlineInputBorder(
+                            //         borderRadius: BorderRadius.circular(25), // Rounded border
+                            //         borderSide: const BorderSide(
+                            //           color: Colors.transparent, // No border color
+                            //         ),
+                            //       ),
+                            //       focusedBorder: OutlineInputBorder(
+                            //         borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                            //         borderSide: const BorderSide(
+                            //           color: Colors.transparent,
+                            //         ),
+                            //       ),
+                            //       border: OutlineInputBorder(
+                            //         borderRadius: BorderRadius.circular(25),
+                            //         borderSide: const BorderSide(
+                            //           color: Colors.transparent,
+                            //         ),
+                            //       ),
+                            //       // Set the label text and border behavior when label is focused
+                            //     ),
+                            //   ),
+                            //
+                            //   dropdownBuilder: (context, selectedItem) => Container(
+                            //     alignment: Alignment.centerLeft,
+                            //     width: 308, // Set width to 308
+                            //     height: 35,  // Set height to 35
+                            //     padding: const EdgeInsets.symmetric(horizontal: 10),
+                            //     child: Text(
+                            //       selectedItem ?? "Select an option",
+                            //       style: const TextStyle(
+                            //         fontFamily: 'Roboto',
+                            //         fontWeight: FontWeight.w500,
+                            //         fontSize: 14,
+                            //         color: Colors.black, // You can customize the text style
+                            //       ),
+                            //     ),
+                            //   ),
+                            //
+                            //
+                            // ),
+                            DropdownSearch<String>(
+                              key: dropDownKeyCourseUnit,
+                              // items: (filter, infiniteScrollProps) => _fetchCourses(),
+                              items: (filter, infiniteScrollProps) => courseUnitNumbers, // Use the fetched course units
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedCourseUnit = value; // Update selected course unit
+                                });
+                              },
+                              selectedItem: selectedCourseUnit,
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                fit: FlexFit.loose,
+                                constraints: BoxConstraints(
+                                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                  maxWidth: 308,
+                                ),
+                                containerBuilder: (context, popupWidget) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE1FCE2), // Same background color
+                                      borderRadius: BorderRadius.circular(0), // Same border radius
+                                    ),
+                                    width: 308, // Set the width of the popup
+                                    child: popupWidget, // Return the actual popup content
+                                  );
+                                },
+                                searchFieldProps: TextFieldProps(
+                                  decoration: InputDecoration(
+                                    hintText: 'Search', // Placeholder text
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey, // Border color
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                                  ),
+                                ),
+                              ),
+                              decoratorProps: DropDownDecoratorProps(
+                                decoration  : InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFE1FCE2), // Set background color
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Rounded border
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent, // No border color
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  // Set the label text and border behavior when label is focused
+                                ),
+                              ),
+                              dropdownBuilder: (context, selectedItem) => Container(
+                                alignment: Alignment.centerLeft,
+                                width: 308, // Set width to 308
+                                height: 35,  // Set height to 35
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  selectedItem ?? "Select an option",
+                                  style: const TextStyle(
+                                    fontFamily: 'Roboto',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    color: Colors.black, // You can customize the text style
+                                  ),
+                                ),
+                              ),
+
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              "Lecturer:",
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            DropdownSearch<String>(
+                              key: dropDownKeyLecturer,
+                              items: (filter, infiniteScrollProps) => lecturerNames,
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedLecturer = value; // Update selected lecturer
+                                  selectedLecturerId = lecturerMap[value!];
+                                });
+                              },
+                              selectedItem: selectedLecturer,
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                fit: FlexFit.loose,
+                                constraints: BoxConstraints(
+                                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                  maxWidth: 308,
+                                ),
+
+                                containerBuilder: (context, popupWidget) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE1FCE2), // Set the same background color
+                                      borderRadius: BorderRadius.circular(0), // Set the same border radius
+                                    ),
+                                    width: 308, // Set the width of the popup
+                                    child: popupWidget, // Return the actual popup content inside the styled container
+                                  );
+                                },
+                                searchFieldProps: TextFieldProps(
+                                  decoration: InputDecoration(
+                                    hintText: 'Search', // Set the placeholder text
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border for search box
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey, // Border color for the search box
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                                  ),
+                                ),
+                              ),
+
+                              decoratorProps: DropDownDecoratorProps(
+                                decoration  : InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFE1FCE2), // Set background color
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Rounded border
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent, // No border color
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  // Set the label text and border behavior when label is focused
+                                ),
+                              ),
+                              dropdownBuilder: (context, selectedItem) => Container(
+                                alignment: Alignment.centerLeft,
+                                width: 308, // Set width to 308
+                                height: 35,  // Set height to 35
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  selectedItem ?? "Select an option",
+                                  style: const TextStyle(
+                                    fontFamily: 'Roboto',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    color: Colors.black, // You can customize the text style
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              "Student Group:",
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            DropdownSearch<String>(
+                              key: dropDownKeyStudentGroup,
+                              items: (filter, infiniteScrollProps) => studentGroupNames,
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedStudentGroupName = value; // Update selected lecturer
+                                  selectedStudentGroupId = studentGroupMap[value!];
+                                });
+                              },
+                              selectedItem: selectedStudentGroupName,
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                fit: FlexFit.loose,
+                                constraints: BoxConstraints(
+                                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                  maxWidth: 308,
+                                ),
+
+                                containerBuilder: (context, popupWidget) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE1FCE2), // Set the same background color
+                                      borderRadius: BorderRadius.circular(0), // Set the same border radius
+                                    ),
+                                    width: 308, // Set the width of the popup
+                                    child: popupWidget, // Return the actual popup content inside the styled container
+                                  );
+                                },
+                                searchFieldProps: TextFieldProps(
+                                  decoration: InputDecoration(
+                                    hintText: 'Search', // Set the placeholder text
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border for search box
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey, // Border color for the search box
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(25), // Rounded border when focused
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0), // Adjust padding
+                                  ),
+                                ),
+                              ),
+
+                              decoratorProps: DropDownDecoratorProps(
+                                decoration  : InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFE1FCE2), // Set background color
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 0), // Adjust padding to fit height
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Rounded border
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent, // No border color
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25), // Same rounded border when focused
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: const BorderSide(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  // Set the label text and border behavior when label is focused
+                                ),
+                              ),
+                              dropdownBuilder: (context, selectedItem) => Container(
+                                alignment: Alignment.centerLeft,
+                                width: 308, // Set width to 308
+                                height: 35,  // Set height to 35
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  selectedItem ?? "Select an option",
+                                  style: const TextStyle(
+                                    fontFamily: 'Roboto',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    color: Colors.black, // You can customize the text style
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              "Date:",
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: () => _selectDate(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE1FCE2),
+
+                              ),
+                              child: Text(
+                                selectedDate != null
+                                    ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
+                                    : 'Select Date', // Display selected date or default text
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              "Time:",
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "From",
+                                      style: TextStyle(
+                                        fontFamily: 'Roboto',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => _selectStartTime(context),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFE1FCE2),
+                                      ),
+                                      child: Text(
+                                        startTime != null
+                                            ? "${startTime!.hourOfPeriod == 0 ? 12 : startTime!.hourOfPeriod}:${startTime!.minute.toString().padLeft(2, '0')} ${startTime!.period == DayPeriod.am ? 'AM' : 'PM'}"
+                                            : 'Select Time', // Display selected time or default text
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                        ),
+                                      ),
+
+                                    ),
+
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "To",
+                                      style: TextStyle(
+                                        fontFamily: 'Roboto',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => _selectEndTime(context),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFE1FCE2),
+                                      ),
+                                      child: Text(
+                                        endTime != null
+                                            ? "${endTime!.hourOfPeriod == 0 ? 12 : endTime!.hourOfPeriod}:${endTime!.minute.toString().padLeft(2, '0')} ${endTime!.period == DayPeriod.am ? 'AM' : 'PM'}"
+                                            : 'Select Time', // Display selected time or default text
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Generate Button
+                                SizedBox(
+                                  width: 120,
+                                  height: 40,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF88C98A), // Button background color
+                                      shape: RoundedRectangleBorder(
+                                        side: const BorderSide(color: Colors.white, width: 2),
+                                        borderRadius: BorderRadius.circular(15), // Border radius of 15
+                                      ),
+
+                                    ),
+
+                                    onPressed: _handleLectureSubmission,
+                                    child: const Text(
+                                        'Scan',
+                                        style: TextStyle(
+                                            fontFamily: 'Roboto',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 17,
+                                            color: Colors.black
+                                        )),
+                                  ),
+                                ),
+                                // Show Button
+                                SizedBox(
+                                  width: 120,
+                                  height: 40,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF88C98A), // Button background color
+                                      shape: RoundedRectangleBorder(
+                                        side: const BorderSide(color: Colors.white, width: 2),
+                                        borderRadius: BorderRadius.circular(15), // Border radius of 15
+                                      ),
+                                    ),
+                                    onPressed: clearSelections,
+                                    child: const Text(
+                                        'Clear',
+                                        style: TextStyle(
+                                            fontFamily: 'Roboto',
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 17,
+                                            color: Colors.black
+                                        )),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ],
             ),
           )
 

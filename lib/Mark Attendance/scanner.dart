@@ -24,10 +24,18 @@ class ScannerPage extends StatefulWidget {
 
 class _ScannerPageState extends State<ScannerPage> {
 
+  bool canScan = true;
+  bool torch = false;
   String? barcode;
   String? scNumber;
   String? name;
   bool? isValidBarcode;
+
+  MobileScannerController controller = MobileScannerController(
+    torchEnabled: false,
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    returnImage: true,
+  );
 
   Map<String, String> splitBarcode(String barcode) {
     // Split the barcode by '~'
@@ -175,6 +183,7 @@ class _ScannerPageState extends State<ScannerPage> {
       scNumber = null;
       name = null;
       isValidBarcode = null;
+      canScan = true;
     });
   }
 
@@ -214,72 +223,174 @@ class _ScannerPageState extends State<ScannerPage> {
 
       drawer: const Menu(),
       // resizeToAvoidBottomInset: false,
-      body: MobileScanner(
-        controller: MobileScannerController(
-          detectionSpeed: DetectionSpeed.noDuplicates,
-          returnImage: true,
-        ),
-        onDetect: (capture) {
-          final List<Barcode> barcodes = capture.barcodes;
-          final Uint8List? image = capture.image;
+      body: Center(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: MediaQuery.of(context).size.width * 0.9,
+              child: MobileScanner(
+                // scanWindow: Rect.fromCenter(center: Offset(0, dy), width: 500, height: 500),
+                controller: controller,
+                onDetect:(canScan) ? (capture) {
+                  setState(() {
+                    canScan = false;
+                  });
+
+                  final List<Barcode> barcodes = capture.barcodes;
+                  final Uint8List? image = capture.image;
 
 
-          for(final barcode in barcodes) {
-            splitBarcodeAndValidate(barcode.rawValue!, context);
-            if(isValidBarcode!){
-              // print('Barcode found ${barcode.rawValue}');
-              Map<String, String> result = splitBarcode(barcode.rawValue!);
-              scNumber = result['id'];
-              name = result['name'];
-            }else{
-              // print('Barcode not found');
-            }
+                  for(final barcode in barcodes) {
+                    splitBarcodeAndValidate(barcode.rawValue!, context);
+                    if(isValidBarcode!){
+                      // print('Barcode found ${barcode.rawValue}');
+                      Map<String, String> result = splitBarcode(barcode.rawValue!);
+                      scNumber = result['id'];
+                      name = result['name'];
+                    }else{
+                      // print('Barcode not found');
+                    }
 
-          }
+                  }
 
-          if (image != null && isValidBarcode!){
-            showDialog(context: context, builder: (context){
-                return AlertDialog(
-                  title: const Text(
-                    "Barcode Found!",
-                  ),
-                  content: Column(
-                    children: [
-                      Image(
-                          image: MemoryImage(image)
-                      ),
-                      SizedBox(
-                        width: 120,
-                        height: 40,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF88C98A), // Button background color
-                            shape: RoundedRectangleBorder(
-                              side: const BorderSide(color: Colors.white, width: 2),
-                              borderRadius: BorderRadius.circular(15), // Border radius of 15
+                  if (image != null && isValidBarcode!){
+                    showDialog(context: context, builder: (context){
+                        return AlertDialog(
+                          alignment: Alignment.center,
+                          scrollable: true,
+                          title: const Text(
+                            "Barcode Found!",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          content: Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Student ID: $scNumber',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  'Student Name: $name',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Image(
+                                    image: MemoryImage(image)
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+
+                                  children: [
+                                    SizedBox(
+                                      width: 120,
+                                      height: 40,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF88C98A), // Button background color
+                                          shape: RoundedRectangleBorder(
+                                            side: const BorderSide(color: Colors.white, width: 2),
+                                            borderRadius: BorderRadius.circular(15), // Border radius of 15
+                                          ),
+                                        ),
+
+                                        onPressed: (){
+                                          resetScanner();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text(
+                                            'Retake',
+                                            style: TextStyle(
+                                                fontFamily: 'Roboto',
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 17,
+                                                color: Colors.black
+                                            )),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 120,
+                                      height: 40,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF88C98A), // Button background color
+                                          shape: RoundedRectangleBorder(
+                                            side: const BorderSide(color: Colors.white, width: 2),
+                                            borderRadius: BorderRadius.circular(15), // Border radius of 15
+                                          ),
+                                        ),
+
+                                        onPressed: (){
+                                          _handleAttendance(context);
+                                        },
+                                        child: const Text(
+                                            'Submit',
+                                            style: TextStyle(
+                                                fontFamily: 'Roboto',
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 17,
+                                                color: Colors.black
+                                            )),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                              ],
                             ),
                           ),
+                        );
+                    });
+                  }
+                } : null,
+              ),
+            ),
+            const SizedBox(height: 50),
+            // SizedBox(
+            //   width: 120,
+            //   height: 40,
+            //   child: ElevatedButton(
+            //     style: ElevatedButton.styleFrom(
+            //       backgroundColor: const Color(0xFF88C98A), // Button background color
+            //       shape: RoundedRectangleBorder(
+            //         side: const BorderSide(color: Colors.white, width: 2),
+            //         borderRadius: BorderRadius.circular(15), // Border radius of 15
+            //       ),
+            //     ),
+            //
+            //     onPressed: (){
+            //       setState(() {
+            //         torch = !torch;
+            //       });
+            //     },
+            //     child: const Text(
+            //         'Torch',
+            //         style: TextStyle(
+            //             fontFamily: 'Roboto',
+            //             fontWeight: FontWeight.w500,
+            //             fontSize: 17,
+            //             color: Colors.black
+            //         )),
+            //   ),
+            // ),
 
-                          onPressed: (){
-                            _handleAttendance(context);
-                          },
-                          child: const Text(
-                              'Submit',
-                              style: TextStyle(
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 17,
-                                  color: Colors.black
-                              )),
-                        ),
-                      ),
 
-                    ],
-                  ),
-                );
-            });
-          }
-        },
+          ],
+        ),
       ),
     );
 

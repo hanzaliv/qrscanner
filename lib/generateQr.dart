@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'dart:io';
 
+import 'dart:ui' as ui;
+import 'package:image/image.dart' as img;
+
 import 'package:flutter/material.dart';
 // import 'package:path_provider/path_provider.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
@@ -179,6 +182,31 @@ class _GenerateQRState extends State<GenerateQR> {
     );
   }
 
+  // Future<void> _saveQrImage(Uint8List imageBytes, String imageName, BuildContext context) async {
+  //   try {
+  //     // Request storage permissions for Android 10+ or manageExternalStorage for Android 11+
+  //     var status = await Permission.manageExternalStorage.request();
+  //     if (!status.isGranted) {
+  //       throw Exception('Storage permission not granted');
+  //     }
+  //
+  //     // Define the directory and file paths for the Downloads folder
+  //     const String downloadsDir = '/storage/emulated/0/Download/';
+  //     final String filePath = '$downloadsDir/$imageName QR.png';
+  //
+  //     // Save the image file in the Downloads folder
+  //     final File file = File(filePath);
+  //     await file.writeAsBytes(imageBytes);
+  //
+  //     // Confirm the image was saved
+  //     showTopSnackBar(context, 'Image Saved To Downloads', Colors.green);
+  //   } catch (error) {
+  //     showTopSnackBar(context, 'Error saving image: $error', Colors.red);
+  //   }
+  // }
+
+  // half size image
+
   Future<void> _saveQrImage(Uint8List imageBytes, String imageName, BuildContext context) async {
     try {
       // Request storage permissions for Android 10+ or manageExternalStorage for Android 11+
@@ -187,13 +215,45 @@ class _GenerateQRState extends State<GenerateQR> {
         throw Exception('Storage permission not granted');
       }
 
+      // Load the image from bytes
+      img.Image? originalImage = img.decodeImage(imageBytes);
+
+      if (originalImage == null) {
+        throw Exception('Unable to decode image');
+      }
+
+      // Create a new image with a transparent border
+      int borderWidth = 150;
+      int newWidth = originalImage.width + 2 * borderWidth;
+      int newHeight = originalImage.height + 2 * borderWidth;
+      img.Image borderedImage = img.Image(newWidth, newHeight, channels: img.Channels.rgba);
+
+      // Fill the new image with transparency
+      img.fill(borderedImage, img.getColor(255, 255, 255));
+
+      // Draw the original image on top of the transparent bordered image
+      img.copyInto(borderedImage, originalImage, dstX: borderWidth, dstY: borderWidth);
+
+      // Draw text onto the border area
+      img.drawString(
+        borderedImage,
+        img.arial_48, // You can choose a different font here if available
+        borderWidth, // X position (left)
+        borderWidth ~/ 2, // Y position (top), you can adjust this value to center the text better
+        imageName, // Text to draw
+        color: img.getColor(0, 0, 0), // Green color
+      );
+
+      // Convert the bordered image back to bytes
+      Uint8List borderedImageBytes = Uint8List.fromList(img.encodePng(borderedImage));
+
       // Define the directory and file paths for the Downloads folder
       const String downloadsDir = '/storage/emulated/0/Download/';
       final String filePath = '$downloadsDir/$imageName QR.png';
 
       // Save the image file in the Downloads folder
       final File file = File(filePath);
-      await file.writeAsBytes(imageBytes);
+      await file.writeAsBytes(borderedImageBytes);
 
       // Confirm the image was saved
       showTopSnackBar(context, 'Image Saved To Downloads', Colors.green);
@@ -201,6 +261,7 @@ class _GenerateQRState extends State<GenerateQR> {
       showTopSnackBar(context, 'Error saving image: $error', Colors.red);
     }
   }
+
   void showQRCodeDialog(BuildContext context, Uint8List qrImageBytes) {
     showDialog(
       context: context,
